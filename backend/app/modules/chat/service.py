@@ -11,6 +11,11 @@ from app.modules.grammar_correction.application.correct_text_use_case import (
     build_grammar_result,
     correct_text,
 )
+from app.modules.conversation.application.continue_conversation_use_case import (
+    build_conversation_result,
+    continue_conversation,
+    maybe_update_summary,
+)
 
 
 def _direct_answer(question: str, client) -> str:
@@ -77,6 +82,32 @@ def _resolve(question: str, context: dict):
 class ChatService:
     """Feature service — analyzer → clarify → retrieval → compose → LLM."""
 
+    async def _run_conversation(
+        self, question: str, thread_id, client, store, teacher_id: str = "default"
+    ):
+        """النواة المشتركة لمسار المحادثة (عادي + بث): ملخص تراكمي ← سياق
+        (حديث + نبرة المدرس قراءة فقط) ← توليد ← تخزين. تعيد (answer, thread_id)."""
+        from app.modules.conversation.infrastructure.summary_repository import (
+            SummaryRepository,
+        )
+
+        summary_repo = SummaryRepository()
+        maybe_update_summary(client, summary_repo, store, thread_id)
+        state = summary_repo.get(thread_id)
+        history = store.recent_history(thread_id)
+        try:
+            from src.storage.teacher_memory import TeacherMemoryStore
+
+            memory_block = TeacherMemoryStore().get_prompt_block(teacher_id) or ""
+        except Exception:
+            memory_block = ""
+        answer = continue_conversation(
+            client, question, history, state["summary"], memory_block
+        )
+        store.add_message(thread_id, "user", question)
+        store.add_message(thread_id, "assistant", answer, sources=[])
+        return answer, thread_id
+
     async def _run_grammar_correction(self, question: str, thread_id, client, store):
         """النواة المشتركة لمسار التصحيح (عادي + بث): إيجاد/إنشاء thread ←
         تصحيح LLM بلا RAG ← تخزين. تعيد (answer, thread_id)."""
@@ -125,6 +156,13 @@ class ChatService:
         # TODO(المرحلة 2): توجيه GRAMMAR/CONVERSATION لوحداتهما.
         analysis, module, mode = _resolve(question, context)
         _ = module
+        # المحادثة داخل thread قائم فقط — الجديدة تسقط للمسار المباشر الحالي.
+        # (resolve_module نقية: نية ← وحدة؛ شرط السياق هنا في طبقة التنسيق)
+        if module is ModuleIntent.CONVERSATION_PRACTICE and thread_id is not None:
+            answer, thread_id = await self._run_conversation(
+                question, thread_id, client, store, teacher_id
+            )
+            return build_conversation_result(answer, thread_id)
         if mode == "direct":
             if thread_id is None:
                 thread_id = store.create_thread(title=question[:50])["id"]
@@ -204,6 +242,21 @@ class ChatService:
         # المرحلة 1: انظر التعليق في handle() — نفس السلوك الحالي لكل الوحدات.
         analysis, module, mode = _resolve(question, context)
         _ = module
+        if module is ModuleIntent.CONVERSATION_PRACTICE and thread_id is not None:
+            answer, thread_id = await self._run_conversation(
+                question, thread_id, client, store, teacher_id
+            )
+            result = build_conversation_result(answer, thread_id)
+
+            async def conversation_gen():
+                yield {"type": "answer_chunk", "text": result["answer"]}
+                yield {
+                    "type": "done",
+                    "hits": result["hits"],
+                    "trace": result["trace"],
+                    "full": result["answer"],
+                }
+            return conversation_gen(), result["thread_id"]
         if mode == "direct":
             if is_new:
                 thread_id = store.create_thread(title=question[:50])["id"]
