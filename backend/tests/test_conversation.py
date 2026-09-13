@@ -1,7 +1,8 @@
+import asyncio
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app.modules.conversation.application import continue_conversation_use_case as uc
 from app.modules.conversation.application.conversation_prompts import (
@@ -82,6 +83,37 @@ def test_summary_accumulates_previous():
         prompt = mocked.call_args[0][1]
         assert "قديم" in prompt  # الملخص السابق داخل مدخلات التلخيص
         assert repo.state["summarized_upto_msg_id"] == 4
+
+
+class FakeChatStore:
+    def __init__(self):
+        self.saved = []
+
+    def recent_history(self, thread_id):
+        return []
+
+    def add_message(self, thread_id, role, content, sources=None):
+        self.saved.append((role, content))
+
+
+def test_summary_failure_does_not_break_conversation():
+    """تدهور رشيق: فشل التلخيص (429 مثلاً) لا يوقف الرد الأساسي."""
+    from app.modules.chat import service as svc
+
+    store = FakeChatStore()
+    with patch.object(svc, "maybe_update_summary", side_effect=RuntimeError("429")), \
+        patch.object(svc, "continue_conversation", return_value="أهلاً بك"), \
+        patch.object(svc, "get_summary_repo") as repo_factory, \
+        patch("src.storage.teacher_memory.TeacherMemoryStore"):
+        repo_factory.return_value.get.return_value = {
+            "summary": "", "summarized_upto_msg_id": 0,
+        }
+        answer, tid = asyncio.run(
+            svc.ChatService()._run_conversation("مرحبا", 1, MagicMock(), store)
+        )
+        assert answer == "أهلاً بك"
+        assert tid == 1
+        assert ("user", "مرحبا") in store.saved
 
 
 def test_result_contract_matches_lesson_shape():

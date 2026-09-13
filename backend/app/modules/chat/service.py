@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from app.dependencies import get_summary_repo
 from src.agent.loop import run_agentic_rag, run_agentic_rag_stream
 from src.agent.router import route, get_chitchat_reply
 from src.agent.fc_client import call_simple
@@ -87,12 +88,12 @@ class ChatService:
     ):
         """النواة المشتركة لمسار المحادثة (عادي + بث): ملخص تراكمي ← سياق
         (حديث + نبرة المدرس قراءة فقط) ← توليد ← تخزين. تعيد (answer, thread_id)."""
-        from app.modules.conversation.infrastructure.summary_repository import (
-            SummaryRepository,
-        )
-
-        summary_repo = SummaryRepository()
-        maybe_update_summary(client, summary_repo, store, thread_id)
+        summary_repo = get_summary_repo()
+        try:
+            # التلخيص تحسين ثانوي (تدهور رشيق): فشله لا يوقف الرد الأساسي.
+            maybe_update_summary(client, summary_repo, store, thread_id)
+        except Exception:
+            pass
         state = summary_repo.get(thread_id)
         history = store.recent_history(thread_id)
         try:

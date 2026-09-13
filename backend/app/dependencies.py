@@ -6,6 +6,9 @@ from google import genai
 
 from src.storage.chat_store import ChatStore
 from src.knowledge_base import KnowledgeBase
+from app.modules.conversation.infrastructure.summary_repository import (
+    SummaryRepository,
+)
 
 
 @lru_cache(maxsize=1)
@@ -24,6 +27,12 @@ def get_kb() -> KnowledgeBase:
 def get_store() -> ChatStore:
     """مخزن المحادثات — يُهيأ مرة واحدة بشكل كسول."""
     return ChatStore()
+
+
+@lru_cache(maxsize=1)
+def get_summary_repo() -> SummaryRepository:
+    """مستودع ملخصات المحادثة — مفرد (singleton) كبقية المخازن، لا Engine لكل طلب."""
+    return SummaryRepository()
 
 
 @lru_cache(maxsize=1)
