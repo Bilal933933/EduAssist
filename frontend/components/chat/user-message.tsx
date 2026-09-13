@@ -1,6 +1,5 @@
 "use client";
 
-import { User } from "lucide-react";
 import { ChatMessage } from "@/lib/types";
 
 interface UserMessageProps {
@@ -8,23 +7,16 @@ interface UserMessageProps {
   formattedTime: string | null;
 }
 
+// وظيفة واحدة: فقاعة المستخدم بأسلوب Gemini — بدون أفاتار أو ظل.
 export function UserMessage({ message, formattedTime }: UserMessageProps) {
   return (
-    <div className="flex justify-start items-start gap-3 my-4 group">
-      <div className="size-9 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 mt-0.5 border border-primary/25 shadow-xs">
-        <User className="size-4" />
-      </div>
-      <div className="flex flex-col items-end max-w-[85%] sm:max-w-[75%]" dir="rtl">
-        <div 
-          className="bg-primary text-white !text-white px-5 py-3.5 rounded-2xl rounded-tr-none shadow-md text-sm sm:text-base leading-relaxed break-words font-medium text-right w-full"
-          style={{ color: '#ffffff', backgroundColor: 'var(--primary)' }}
-        >
+    <div className="flex justify-start my-4" dir="rtl">
+      <div className="max-w-[92%] sm:max-w-[80%]">
+        <div className="bg-muted px-4 py-2 rounded-2xl text-sm leading-7 break-words text-foreground text-right">
           {message.content}
         </div>
         {formattedTime && (
-          <span className="text-[11px] text-muted-foreground mt-1.5 px-1 opacity-70 font-medium">
-            {formattedTime}
-          </span>
+          <p className="text-[11px] text-muted-foreground mt-1 px-2">{formattedTime}</p>
         )}
       </div>
     </div>

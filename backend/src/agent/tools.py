@@ -117,9 +117,8 @@ def execute_tool(name: str, args: dict, kb, client, inherited_scope: dict | None
         top_k = int(args.get("top_k", 5))
         from src.agent.chat import embed_question
         try:
-            q_vec = embed_question(client, query)
-            # candidate pool داخلي: 40 semantic + 40 lexical → RRF 20 → top_k
-            hits = kb.hybrid_search(query, q_vec, top_k=top_k, scope=inherited_scope, candidate_k=40, fused_k=20)
+            # Lazy: التضمين فقط عند fallback الضعيف داخل hybrid_search
+            hits = kb.hybrid_search(query, None, top_k=top_k, scope=inherited_scope, candidate_k=40, fused_k=20, embed_fn=lambda: embed_question(client, query))
             return hits
         except Exception as e:
             return [{"error": str(e), "title": "خطأ", "text": ""}]

@@ -9,12 +9,27 @@ class RetrievalService:
     def __init__(self, vector_service: VectorService | None = None):
         self.vs = vector_service or VectorService()
 
-    def retrieve(self, question: str, query_vector: list, top_k: int = 8, scope: dict | None = None, client=None):
+    def retrieve(self, question: str, query_vector: list | None = None, top_k: int = 8, scope: dict | None = None, client=None, embed_fn=None):
         resolved_scope = scope or extract_scope(question)
         candidate_k = 40
-        semantic_hits = self.vs.search(query_vector, top_k=candidate_k, query_text=question, scope=resolved_scope)
         lexical_hits = self.vs.lexical_search(question, top_k=candidate_k, scope=resolved_scope)
-        fused = rrf_fuse(semantic_hits, lexical_hits, top_k=20, lexical_weight=1.0)
+        max_lex = max((float(h.get("lexical_score", 0.0)) for h in lexical_hits), default=0.0)
+        if len(lexical_hits) >= 3 and max_lex >= 1.4:
+            fused = lexical_hits
+            for hit in fused:
+                hit["retrieval_mode"] = "lexical_only"
+        else:
+            if query_vector is None and embed_fn is not None:
+                query_vector = embed_fn()
+            if query_vector is None:
+                fused = lexical_hits
+                for hit in fused:
+                    hit["retrieval_mode"] = "lexical_only"
+            else:
+                semantic_hits = self.vs.search(query_vector, top_k=candidate_k, query_text=question, scope=resolved_scope)
+                fused = rrf_fuse(semantic_hits, lexical_hits, top_k=20, lexical_weight=1.0)
+                for hit in fused:
+                    hit["retrieval_mode"] = "hybrid_fallback"
         # reranker يرى 700 حرف + metadata
         if client and fused:
             try:

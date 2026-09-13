@@ -35,7 +35,7 @@ export default function HomePage() {
           ))}
         </div>
       </section>
-      <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">EduAssist — مساعدك الذكي للتعلّم • Learn smarter. Understand better.</footer>
+      <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">EduAssist — مساعد المدرس الذكي للغة العربية</footer>
     </div>
   );
 }

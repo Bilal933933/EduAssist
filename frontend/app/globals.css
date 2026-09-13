@@ -2,8 +2,94 @@
 
 @custom-variant dark (&:is(.dark *));
 
+:root {
+  --radius: 1.75rem;
+  --background: #f2f4f7;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --primary: #111111;
+  --primary-foreground: #ffffff;
+  --secondary: #e9ebef;
+  --secondary-foreground: #111111;
+  --muted: #edeef1;
+  --muted-foreground: #636366;
+  --accent: #e9ebef;
+  --accent-foreground: #111111;
+  --destructive: #dc2626;
+  --border: #e4e6eb;
+  --input: #e4e6eb;
+  --ring: #111111;
+  --glass: rgba(255, 255, 255, 0.72);
+  --shadow-soft: 0 12px 32px rgba(17, 17, 17, 0.06);
+  --shadow-card: 0 8px 24px rgba(17, 17, 17, 0.05), 0 1px 2px rgba(17, 17, 17, 0.06);
+  --shadow-float: 0 24px 48px -12px rgba(17, 17, 17, 0.12);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #111111;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e9ebef;
+  --sidebar-accent-foreground: #111111;
+  --sidebar-border: #e4e6eb;
+  --sidebar-ring: #111111;
+}
+
+.dark {
+  --background: #0f1114;
+  --foreground: #f2f4f7;
+  --card: #17191d;
+  --card-foreground: #f2f4f7;
+  --popover: #17191d;
+  --popover-foreground: #f2f4f7;
+  --primary: #f5f5f7;
+  --primary-foreground: #111111;
+  --secondary: #23262b;
+  --secondary-foreground: #f2f4f7;
+  --muted: #23262b;
+  --muted-foreground: #a7a7ac;
+  --accent: #23262b;
+  --accent-foreground: #f2f4f7;
+  --destructive: #f87171;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #e5e5e5;
+  --glass: rgba(23, 25, 29, 0.72);
+  --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-float: 0 24px 48px -12px rgba(0, 0, 0, 0.55);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: #17191d;
+  --sidebar-foreground: #f2f4f7;
+  --sidebar-primary: #f5f5f7;
+  --sidebar-primary-foreground: #111111;
+  --sidebar-accent: #23262b;
+  --sidebar-accent-foreground: #f2f4f7;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #e5e5e5;
+}
+
 @theme inline {
-  --font-sans: var(--font-arabic), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
+  --color-glass: var(--glass);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -22,15 +108,38 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Custom Utilities using @utility (Tailwind v4 CSS-first) */
+/* Project utilities (kept): container + entrance animations + RTL */
+
 @utility container {
   @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+@utility glass {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+
+@utility soft-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 @utility text-balance {
@@ -87,13 +196,13 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideInFromLeft {
-  from { opacity: 0; transform: translateX(-10px); }
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translateX(10px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes slideInFromRight {
-  from { opacity: 0; transform: translateX(10px); }
+@keyframes slideInFromLeft {
+  from { opacity: 0; transform: translateX(-10px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
@@ -109,52 +218,7 @@
   }
 }
 
-:root {
-  /* Strictly Chocolaty Brown & Cream (Light Mode) - فيديو 3 */
-  --background: #f7f4ed;         /* كريمي عاجي ناعم */
-  --foreground: #1c1410;
-  --card: #ffffff;
-  --card-foreground: #1c1410;
-  --popover: #ffffff;
-  --popover-foreground: #1c1410;
-  --primary: #4a2717;            /* بني شوكولاتي فاخر */
-  --primary-foreground: #f7f4ed;
-  --secondary: #eee5d8;          /* كريمي خشب دافئ */
-  --secondary-foreground: #30170c;
-  --muted: #e8ded0;
-  --muted-foreground: #615047;
-  --accent: #4a2717;
-  --accent-foreground: #ffffff;
-  --destructive: #7f1d1d;
-  --border: #dfd2c2;
-  --input: #dfd2c2;
-  --ring: #4a2717;
-  --radius: 0.875rem;
-}
-
-.dark {
-  /* Strictly Chocolaty Brown & Cream (Dark Mode) */
-  --background: #120c09;         /* بني فحمي داكن */
-  --foreground: #f2ece4;
-  --card: #1c130e;
-  --card-foreground: #f2ece4;
-  --popover: #1c130e;
-  --popover-foreground: #f2ece4;
-  --primary: #5c321e;            /* بني شوكولاتي غني */
-  --primary-foreground: #ffffff;
-  --secondary: #281912;
-  --secondary-foreground: #e4d3c4;
-  --muted: #241710;
-  --muted-foreground: #948277;
-  --accent: #5c321e;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --border: #332219;
-  --input: #332219;
-  --ring: #5c321e;
-}
-
-/* Scrollbar بلون بني خشب */
+/* Scrollbar follows the theme */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -165,12 +229,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #302017;
+  background: color-mix(in srgb, var(--primary) 65%, transparent);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #5c321e;
+  background: var(--primary);
 }
 
 /* RTL Helpers */

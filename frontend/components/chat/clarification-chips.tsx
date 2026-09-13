@@ -1,13 +1,15 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 
+// وظيفة واحدة: رقائق التوضيح بأسلوب خافت — بدون بطاقة ملونة.
 export function ClarificationChips({ question, options, onSelect }: { question: string; options: string[]; onSelect: (opt: string) => void }) {
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 my-2 dark:border-amber-800 dark:bg-amber-950/30">
-      <p className="text-sm font-medium mb-3">🤔 {question}</p>
-      <div className="flex flex-wrap gap-2">
+    <div className="my-3 pr-9" dir="rtl">
+      <p className="text-sm text-foreground">{question}</p>
+      <div className="flex flex-wrap gap-1.5 mt-2">
         {options.map((opt) => (
-          <Button key={opt} variant="outline" size="sm" onClick={() => onSelect(opt)} className="rounded-full">
+          <Button key={opt} variant="outline" size="sm" onClick={() => onSelect(opt)} className="rounded-full text-xs">
             {opt}
           </Button>
         ))}

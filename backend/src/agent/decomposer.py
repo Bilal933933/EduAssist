@@ -99,6 +99,9 @@ def get_pillars(question: str) -> list:
 
 def decompose_question(client, question: str, max_queries: int = 5, intent: str | None = None) -> list:
     """يفكك سؤال المدرس إلى استعلامات فرعية عبر Gemini، مع fallback حتمي موجّه بالنية."""
+    # الأسئلة المفردة (إعراب/شرح/تحية) لا تحتاج تفكيكاً — استعلام واحد مباشر بلا LLM.
+    if intent in ("parse", "explain", "chitchat", "general_question", "correct", "review"):
+        return [question]
     # حالة خاصة حتمية: الفرق بين A و B → لا تعتمد على LLM فقط
     if "الفرق بين" in question or "الفرق بين" in question.replace("ـ",""):
         m = re.search(r"الفرق بين\s+(.+?)\s+و\s+(.+?)(?:\?|؟|$)", question)

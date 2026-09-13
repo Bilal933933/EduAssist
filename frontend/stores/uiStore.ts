@@ -45,7 +45,22 @@ interface UIStore {
   resetToDefaults: () => void;
 }
 
-const defaultState: Omit<UIStore, keyof ReturnType<typeof useUIStore>> = {
+type UIState = Pick<
+  UIStore,
+  | "theme"
+  | "sidebarOpen"
+  | "currentLessonId"
+  | "selectedDifficulty"
+  | "selectedExplanationMode"
+  | "selectedQuestionType"
+  | "showThinkingProcess"
+  | "autoSaveEnabled"
+  | "rtlEnabled"
+  | "notificationEnabled"
+  | "chatPanelWidth"
+>;
+
+const defaultState: UIState = {
   theme: 'dark',
   sidebarOpen: true,
   currentLessonId: null,

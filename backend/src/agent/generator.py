@@ -1,7 +1,7 @@
-from src.agent.prompts import TEACHER_SYSTEM
+from src.agent.prompts import TEACHER_SYSTEM, get_branch_pack, resolve_branch
 
 
-def build_teacher_prompt(question, all_hits, history, file_contents, memory_block: str = ""):
+def build_teacher_prompt(question, all_hits, history, file_contents, memory_block: str = "", branch: str = "general", scope: dict | None = None, analysis=None):
     """يبني برومبت المدرس مع إمكانية حقن ذاكرة المدرس."""
     # لا ندخل candidate pool كاملًا في prompt؛ بعد rerank نرسل أفضل 5–8 evidence فقط.
     context_hits = list(all_hits or [])[:8]
@@ -49,8 +49,9 @@ def build_teacher_prompt(question, all_hits, history, file_contents, memory_bloc
         f"ولا تذكر أي درجة تشابه داخل النص النهائي إلا إذا كانت متاحة فعلاً."
     )
 
-    system = TEACHER_SYSTEM
+    resolved = resolve_branch(question, scope=scope or {}, analysis=analysis) if branch in (None, "", "general") else branch
+    system = TEACHER_SYSTEM + "\n\n" + get_branch_pack(resolved)
     if memory_block:
-        system = TEACHER_SYSTEM + "\n\n" + memory_block
+        system = system + "\n\n" + memory_block
 
     return system, user

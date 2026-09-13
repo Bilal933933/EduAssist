@@ -46,8 +46,7 @@ def main():
         if not question:
             continue
 
-        q_vec = embed_question(client, question)
-        hits = kb.hybrid_search(question, q_vec)
+        hits = kb.hybrid_search(question, None, embed_fn=lambda: embed_question(client, question))
         try:
             answer = ask(client, question, hits)
         except Exception as error:

@@ -52,19 +52,86 @@ def _grade_topic_from_analysis(analysis) -> tuple:
 
 
 
-def run_agentic_rag(client, kb, question, history=None, max_iterations=4, analysis=None, teacher_id="default"):
+LIGHT_SYSTEM = (
+    "أنت معلم النحو العربي. أجب بالعربية الفصحى البسيطة بإيجاز ودقة. "
+    "استعمل الأدلة المسترجعة أولاً واستشهد بها بصيغة [المصدر] عند الاعتماد عليها. "
+    "إن لم تجد الجواب في الأدلة فأجب من معرفتك النحوية الموثوقة مع تنبيه واضح في أول الإجابة: "
+    "(تنبيه: هذه الإجابة من معرفتي العامة لعدم ورودها في المصادر)."
+)
+
+
+QUOTA_FALLBACK = (
+    "تعذّر الوصول إلى نموذج الإجابة حالياً بسبب ضغط مؤقت على الحصة المجانية (429). "
+    "سؤالك محفوظ — انتظر دقيقة ثم اضغط Retry وسأجيبك فوراً."
+)
+
+
+def _build_light_prompt(question, hits, history=None):
+    parts = []
+    for h in (hits or [])[:8]:
+        if not isinstance(h, dict) or h.get("error") or not (h.get("text") or "").strip():
+            continue
+        src = h.get("source", "مصدر")
+        page = f" ص{h.get('page')}" if h.get("page") else ""
+        parts.append(f"[{h.get('title', src)} - {src}{page}]\n{h.get('text', '')[:800]}")
+    evidence = "\n\n---\n\n".join(parts) if parts else "لا توجد أدلة مسترجعة."
+    hist = ""
+    if history:
+        hist = "\n".join(f"{'المدرس' if r == 'user' else 'المساعد'}: {t[:300]}" for r, t in history[-4:])
+        hist = f"سياق المحادثة:\n{hist}\n\n"
+    user = (
+        f"{hist}الأدلة من المصادر:\n{evidence}\n\n"
+        f"سؤال المدرس: {question}\n"
+        "المطلوب: أجب مباشرة (إعراب/شرح مختصر). استشهد بالأدلة إن اعتمدت عليها، "
+        "وإلا أجب من معرفتك مع التنبيه المذكور."
+    )
+    return LIGHT_SYSTEM, user
+
+
+def _light_search(kb, client, question, question_scope):
+    from src.agent.tools import execute_tool
+    try:
+        hits = execute_tool("searchChunks", {"query": question, "top_k": 8}, kb, client, inherited_scope=question_scope)
+        if not isinstance(hits, list):
+            return []
+        return [h for h in hits if isinstance(h, dict) and not h.get("error")]
+    except Exception as e:
+        print(f"[Light search skip: {e}]")
+        return []
+
+
+def run_agentic_rag(client, kb, question, history=None, max_iterations=4, analysis=None, teacher_id="default", light=False):
     """حلقة مع طبقة استيضاح قبل التفكيك. analysis يأتي من QueryAnalyzer (intent/scope/source_policy)."""
-    # 0. استيضاح عبر Analyzer الجديد إن وجد، وإلا fallback للقديم
+    # 0. استيضاح عبر Analyzer الجديد فقط — بلا بحث معجمي استباقي (كان يسأل عن الصف حتى للتحيات).
     if analysis is not None and getattr(analysis, "needs_clarification", False):
         return f"CLARIFY: {analysis.clarification_question}", [], [{"tool": "clarify", "question": analysis.clarification_question, "options": []}]
-    try:
-        quick_hits = kb.vector_service.lexical_search(question, top_k=5)
-        from src.agent.clarifier import needs_clarification
-        clar = needs_clarification(question, quick_hits)
-        if clar:
-            return f"CLARIFY: {clar['question']}", [], [{"tool": "clarify", "question": clar["question"], "options": clar["options"]}]
-    except Exception as e:
-        print(f"[Clarify skip: {e}]")
+    if analysis is None:
+        try:
+            quick_hits = kb.vector_service.lexical_search(question, top_k=5)
+            from src.agent.clarifier import needs_clarification
+            clar = needs_clarification(question, quick_hits)
+            if clar:
+                return f"CLARIFY: {clar['question']}", [], [{"tool": "clarify", "question": clar["question"], "options": clar["options"]}]
+        except Exception as e:
+            print(f"[Clarify skip: {e}]")
+
+    # مسار خفيف: بحث واحد + توليد واحد (للإعراب والشرح والأسئلة المفردة).
+    if light:
+        question_scope = extract_scope(question)
+        timer = Timer(f"Light: {question[:30]}")
+        hits = _light_search(kb, client, question, question_scope)
+        trace = [{"tool": "searchChunks", "args": {"query": question}, "light": True, "hits": len(hits)}]
+        system, user = _build_light_prompt(question, hits, history)
+        try:
+            answer = call_simple(client, user, system)
+        except Exception as e:
+            print(f"[Light generate fallback: {e}]")
+            answer = QUOTA_FALLBACK
+            trace.append({"tool": "generate_fallback", "error": str(e)[:120]})
+        else:
+            trace.append({"tool": "generate", "hits": len(hits)})
+        timer.end(f"light hits={len(hits)}")
+        return answer, hits[:8], trace
 
     # إذا كان طلب تحضير درس، شغّل 4 وكلاء
     if "حضر" in question and "درس" in question:
@@ -200,12 +267,20 @@ def run_agentic_rag(client, kb, question, history=None, max_iterations=4, analys
             print(f"[Composer fallback: {e}]")
             g, t = _grade_topic_from_analysis(analysis)
             memory_block = _load_memory_block(teacher_id, current_grade=g, current_topic=t)
-            system, user = build_teacher_prompt(question, all_hits, history, file_contents, memory_block=memory_block)
+            system, user = build_teacher_prompt(question, all_hits, history, file_contents, memory_block=memory_block, scope=question_scope, analysis=analysis)
     else:
         g, t = _grade_topic_from_analysis(analysis)
         memory_block = _load_memory_block(teacher_id, current_grade=g, current_topic=t)
-        system, user = build_teacher_prompt(question, all_hits, history, file_contents, memory_block=memory_block)
-    answer = call_simple(client, user, system)
+        system, user = build_teacher_prompt(question, all_hits, history, file_contents, memory_block=memory_block, scope=question_scope, analysis=analysis)
+    try:
+        answer = call_simple(client, user, system)
+    except Exception as e:
+        print(f"[Deep generate fallback: {e}]")
+        answer = QUOTA_FALLBACK
+        trace.append({"tool": "generate_fallback", "error": str(e)[:120]})
+        timer.end(f"hits={len(all_hits)} fallback")
+        logger.info(f"trace: {trace}")
+        return answer, all_hits, trace
     trace.append({"tool": "generate", "hits": len(all_hits)})
 
     # 2.1 تحقق الاستشهاد (اختياري - لا يبطئ إذا كان الجواب قصير)
@@ -232,23 +307,60 @@ def run_agentic_rag(client, kb, question, history=None, max_iterations=4, analys
     return answer, all_hits, trace
 
 
-async def run_agentic_rag_stream(client, kb, question, history=None, max_iterations=4, analysis=None, teacher_id="default"):
+async def run_agentic_rag_stream(client, kb, question, history=None, max_iterations=4, analysis=None, teacher_id="default", light=False):
     """نسخة Streaming مع استيضاح."""
     question_scope = extract_scope(question)
     if analysis is not None and getattr(analysis, "needs_clarification", False):
         yield {"type": "clarification", "question": analysis.clarification_question, "options": []}
         return
+    if analysis is None:
+        import asyncio as _aio
+        try:
+            quick_hits = kb.vector_service.lexical_search(question, top_k=5)
+            from src.agent.clarifier import needs_clarification
+            clar = needs_clarification(question, quick_hits)
+            if clar:
+                yield {"type": "clarification", "question": clar["question"], "options": clar["options"]}
+                return
+        except Exception as e:
+            print(f"[Clarify stream skip: {e}]")
     import asyncio
-    # 0. استيضاح
-    try:
-        quick_hits = kb.vector_service.lexical_search(question, top_k=5)
-        from src.agent.clarifier import needs_clarification
-        clar = needs_clarification(question, quick_hits)
-        if clar:
-            yield {"type": "clarification", "question": clar["question"], "options": clar["options"]}
-            return
-    except Exception as e:
-        print(f"[Clarify stream skip: {e}]")
+    # مسار خفيف متدفق: بحث واحد + توليد متدفق.
+    if light:
+        yield {"type": "status", "message": "يبحث في المصادر..."}
+        hits = _light_search(kb, client, question, question_scope)
+        trace = [{"tool": "searchChunks", "args": {"query": question}, "light": True, "hits": len(hits)}]
+        yield {"type": "status", "message": "يولد الإجابة..."}
+        system, user = _build_light_prompt(question, hits, history)
+        full = ""
+        try:
+            from google.genai import types as gen_types
+            _stream_cfg = gen_types.GenerateContentConfig(system_instruction=system)
+            try:
+                _stream_cfg.http_options = gen_types.HttpOptions(timeout=30000)
+            except Exception:
+                pass
+            for chunk in client.models.generate_content_stream(model=MODEL_NAME, contents=user, config=_stream_cfg):
+                if chunk.text:
+                    full += chunk.text
+                    yield {"type": "answer_chunk", "text": chunk.text}
+                    await asyncio.sleep(0)
+        except Exception as e_stream:
+            print(f"[Light stream fallback: {e_stream}]")
+            try:
+                full = call_simple(client, user, system)
+            except Exception as e_simple:
+                print(f"[Light generate fallback: {e_simple}]")
+                full = QUOTA_FALLBACK
+                trace.append({"tool": "generate_fallback", "error": str(e_simple)[:120]})
+                yield {"type": "answer_chunk", "text": full}
+                yield {"type": "done", "hits": hits[:8], "trace": trace, "full": full}
+                return
+            for i in range(0, len(full), 80):
+                yield {"type": "answer_chunk", "text": full[i:i+80]}
+                await asyncio.sleep(0.02)
+        yield {"type": "done", "hits": hits[:8], "trace": trace + [{"tool": "generate", "hits": len(hits)}], "full": full}
+        return
 
     all_hits=[]
     file_contents={}
@@ -344,11 +456,11 @@ async def run_agentic_rag_stream(client, kb, question, history=None, max_iterati
             print(f"[Composer stream fallback: {e}]")
             g, t = _grade_topic_from_analysis(analysis)
             memory_block = _load_memory_block(teacher_id, current_grade=g, current_topic=t)
-            system, user = build_teacher_prompt(question, all_hits, history, file_contents, memory_block=memory_block)
+            system, user = build_teacher_prompt(question, all_hits, history, file_contents, memory_block=memory_block, scope=question_scope, analysis=analysis)
     else:
         g, t = _grade_topic_from_analysis(analysis)
         memory_block = _load_memory_block(teacher_id, current_grade=g, current_topic=t)
-        system, user = build_teacher_prompt(question, all_hits, history, file_contents, memory_block=memory_block)
+        system, user = build_teacher_prompt(question, all_hits, history, file_contents, memory_block=memory_block, scope=question_scope, analysis=analysis)
 
     # streaming للتوليد النهائي
     full = ""
@@ -359,9 +471,18 @@ async def run_agentic_rag_stream(client, kb, question, history=None, max_iterati
                 full += chunk.text
                 yield {"type": "answer_chunk", "text": chunk.text}
                 await asyncio.sleep(0)
-    except:
+    except Exception as e_stream:
+        print(f"[Deep stream fallback: {e_stream}]")
         # fallback غير متدفق
-        full = call_simple(client, user, system)
+        try:
+            full = call_simple(client, user, system)
+        except Exception as e_simple:
+            print(f"[Deep generate fallback: {e_simple}]")
+            full = QUOTA_FALLBACK
+            trace.append({"tool": "generate_fallback", "error": str(e_simple)[:120]})
+            yield {"type": "answer_chunk", "text": full}
+            yield {"type": "done", "hits": all_hits, "trace": trace, "full": full}
+            return
         for i in range(0, len(full), 80):
             yield {"type": "answer_chunk", "text": full[i:i+80]}
             await asyncio.sleep(0.02)

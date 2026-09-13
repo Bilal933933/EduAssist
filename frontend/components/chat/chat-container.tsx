@@ -16,6 +16,8 @@ import { getAuthToken } from "@/lib/auth";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { useChatStream } from "@/hooks/useChatStream";
 import { toast } from "sonner";
+import { PanelRightOpen } from "lucide-react";
+import { toArabicStepLabel } from "@/lib/agent-labels";
 
 interface ChatContainerProps {
   initialStats: StatsResponse | null;
@@ -28,10 +30,13 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [currentThreadId, setCurrentThreadId] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebar, setDesktopSidebar] = useState(true);
+  const mainRef = useRef<HTMLElement>(null);
+  const stickBottomRef = useRef(true);
   const [authState, setAuthState] = useState<"checking" | "guest" | "authed">("checking");
   const [clarify, setClarify] = useState<{ question: string; options: string[] } | null>(null);
   const [lastFailed, setLastFailed] = useState<string | null>(null);
-  const { status: streamStatus, setStatus: setStreamStatus, stream } = useChatStream();
+  const { status: streamStatus, setStatus: setStreamStatus } = useChatStream();
   const scrollBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,21 +58,23 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
     }
   );
 
-  // Auto scroll — performant: auto during streaming, smooth only on finalize, and only if user near bottom
+  // تتبع التصاق المستخدم بالأسفل — لا نتدخل بتمريره أبداً وهو يقرأ بالأعلى
+  const handleMainScroll = () => {
+    const container = mainRef.current;
+    if (!container) return;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    stickBottomRef.current = scrollHeight - scrollTop - clientHeight < 120;
+  };
+
+  // تمرير للأسفل فقط إذا كان المستخدم ملتصقاً به أصلاً (يمنع القفز)
   useEffect(() => {
-    const el = scrollBottomRef.current;
-    if (!el) return;
-    const container = el.closest("main") as HTMLElement | null;
-    if (container) {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 160;
-      if (!isNearBottom) return;
-    }
-    const behavior: ScrollBehavior = isLoading ? "auto" : "smooth";
+    if (!stickBottomRef.current) return;
+    const container = mainRef.current;
+    if (!container) return;
     requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior, block: "end" });
+      container.scrollTop = container.scrollHeight;
     });
-  }, [messages, isLoading]);
+  }, [messages]);
 
   // Fetch updated stats if not available
   useEffect(() => {
@@ -119,9 +126,22 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
       let fullText = "";
       let finalHits: any[] = [];
       let finalThreadId: number | null = null;
-      setMessages((prev) => [...prev, { id: assistantId, content: "", role: "assistant", createdAt: new Date(), hits: [] }]);
+      const startedAt = Date.now();
+      const traceSteps: { label: string }[] = [];
+      const pushStep = (label: string) => {
+        if (!label) return;
+        const key = toArabicStepLabel(label);
+        if (traceSteps.some((s) => toArabicStepLabel(s.label) === key)) return;
+        traceSteps.push({ label });
+      };
+      setMessages((prev) => [...prev, { id: assistantId, content: "", role: "assistant", createdAt: new Date(), hits: [], trace: [], streaming: true }]);
       for await (const event of (await import("@/lib/api")).streamChat(text.trim(), currentThreadId, (msg) => setStreamStatus(msg)) as any) {
-        if (event.type === "status") setStreamStatus(event.message);
+        if (event.type === "status") {
+          setStreamStatus(event.message);
+          pushStep(event.message);
+          const snapshot = [...traceSteps];
+          setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, trace: snapshot } : m)));
+        }
         else if (event.type === "clarification") {
           setClarify({ question: event.question, options: event.options });
           setMessages((prev) => prev.filter((m) => m.id !== assistantId));
@@ -134,12 +154,18 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
           setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: fullText } : m)));
         } else if (event.type === "done") {
           finalHits = event.hits || [];
-          setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, hits: finalHits } : m)));
+          const durationMs = Date.now() - startedAt;
+          const snapshot = [...traceSteps];
+          setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, hits: finalHits, trace: snapshot, durationMs, streaming: false } : m)));
         } else if (event.type === "thread") finalThreadId = event.thread_id;
         else if (event.type === "error") throw new Error(event.error);
       }
       setIsLoading(false);
       setStreamStatus(null);
+      setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, streaming: false, durationMs: m.durationMs ?? Date.now() - startedAt } : m)));
+      if (/تعذّر الوصول|ضغط مؤقت|429|حدث خطأ/.test(fullText)) {
+        setLastFailed(text.trim());
+      }
       if (finalThreadId != null) setCurrentThreadId(finalThreadId);
       refreshThreads();
       return;
@@ -219,14 +245,37 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
         onDeleteThread={handleDeleteThread}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        desktopHidden={!desktopSidebar}
+        onCollapse={() => setDesktopSidebar(false)}
       />
 
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0">
-        <ChatHeader stats={stats} onOpenMenu={() => setSidebarOpen(true)} />
+        <ChatHeader
+          stats={stats}
+          onOpenMenu={() => {
+            if (window.innerWidth < 1024) setSidebarOpen(true);
+            else setDesktopSidebar((v) => !v);
+          }}
+          status={isLoading ? "generating" : messages.length > 0 ? "done" : "idle"}
+          sidebarOpen={desktopSidebar}
+        />
 
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
-          <div className="max-w-4xl mx-auto min-h-full flex flex-col justify-between">
+        {/* زر فتح صريح يظهر فقط عند طي السايدبار — شاشات كبيرة */}
+        {!desktopSidebar && (
+          <button
+            type="button"
+            onClick={() => setDesktopSidebar(true)}
+            aria-label="فتح قائمة المحادثات"
+            title="فتح قائمة المحادثات"
+            className="hidden lg:flex fixed top-16 right-3 z-30 size-9 rounded-full border border-border bg-background shadow-md text-muted-foreground hover:text-foreground items-center justify-center"
+          >
+            <PanelRightOpen className="size-4" />
+          </button>
+        )}
+
+        <main ref={mainRef} onScroll={handleMainScroll} className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6">
+          <div className="max-w-2xl mx-auto">
             {messages.length === 0 ? (
               <div className="my-auto py-8">
                 <QuickPrompts
@@ -240,7 +289,7 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
                   <MessageItem key={msg.id} message={msg} />
                 ))}
                 {clarify && <ClarificationChips question={clarify.question} options={clarify.options} onSelect={(opt) => { setClarify(null); handleSendMessage(`أقصد: ${opt} — ${messages[messages.length-1]?.content || ""}`.slice(0,120)); }} />}
-                {isLoading && <ThinkingIndicator message={streamStatus || undefined} />}
+                {isLoading && ![...messages].reverse().find((m) => m.role === "assistant")?.content && <ThinkingIndicator message={streamStatus || undefined} />}
                 {lastFailed && !isLoading && (
                   <div className="flex justify-center my-3">
                     <button onClick={() => handleSendMessage(lastFailed)} className="bg-destructive text-destructive-foreground px-4 py-2 rounded-full text-sm font-bold shadow hover:bg-destructive/90">حدث خطأ — اضغط Retry</button>
@@ -253,7 +302,7 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
         </main>
 
         {/* Input — inside the flex flow, no overlap */}
-        <footer className="border-t border-border/60 bg-background shrink-0">
+        <footer className="border-t border-border/60 bg-background shrink-0 pb-[env(safe-area-inset-bottom)]">
           <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
         </footer>
       </div>

@@ -31,7 +31,7 @@ Next.js (PWA)  -->  FastAPI (RAG Worker)  -->  Postgres + pgvector
 | باك اند AI | FastAPI + google-genai + sqlalchemy + pgvector |
 | Gateway | NestJS + Socket.IO (realtime/) |
 | قاعدة بيانات | PostgreSQL 16 + pgvector |
-| LLM | `gemini-2.0-flash` مع fallback `3.6-flash -> 3.5-flash-lite` (مجاني) |
+| LLM | `gemini-3.5-flash-lite` (سريع، حدود مجانية واسعة) مع fallback `3.5-flash -> 3.6-flash` |
 | Embeddings | `gemini-embedding-2` (768 بُعد) مع fallback `gemini-embedding-001` (مجاني) |
 | Vector Search | Hybrid (دلالي + معجمي) + RRF Fuse (بديل Reranker) - لا Cohere |
 

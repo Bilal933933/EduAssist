@@ -14,8 +14,7 @@ class CardsRequest(BaseModel):
 @router.post("/flashcards")
 async def flashcards(req: CardsRequest, client: genai.Client = Depends(get_gemini_client), kb=Depends(get_kb)):
     try:
-        qvec = embed_question(client, req.topic)
-        hits = kb.hybrid_search(req.topic, qvec, top_k=5)
+        hits = kb.hybrid_search(req.topic, None, top_k=5, embed_fn=lambda: embed_question(client, req.topic))
         cards = generate_flashcards(client, hits, req.topic)
         return {"cards": cards, "topic": req.topic}
     except Exception as e: raise HTTPException(500, str(e))
@@ -23,8 +22,7 @@ async def flashcards(req: CardsRequest, client: genai.Client = Depends(get_gemin
 @router.post("/quiz")
 async def quiz(req: CardsRequest, client: genai.Client = Depends(get_gemini_client), kb=Depends(get_kb)):
     try:
-        qvec = embed_question(client, req.topic)
-        hits = kb.hybrid_search(req.topic, qvec, top_k=5)
+        hits = kb.hybrid_search(req.topic, None, top_k=5, embed_fn=lambda: embed_question(client, req.topic))
         quiz = generate_quiz(client, hits, req.topic)
         return {"quiz": quiz, "topic": req.topic}
     except Exception as e: raise HTTPException(500, str(e))

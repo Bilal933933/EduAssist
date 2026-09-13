@@ -1,0 +1,129 @@
+[
+  {
+    "category": "direct",
+    "expected": "strong",
+    "id": "ar01",
+    "question": "ما علامات رفع الفاعل في الصف الخامس الابتدائي؟",
+    "scope": {
+      "branch": "نحو",
+      "grade": "primary_5",
+      "source_type": "textbook",
+      "stage": "primary",
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "direct",
+    "expected": "strong",
+    "id": "ar02",
+    "question": "تعريف المبتدأ والخبر",
+    "scope": {
+      "branch": "نحو",
+      "source_type": "textbook",
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "direct",
+    "expected": "strong",
+    "id": "ar03",
+    "question": "أنواع الخبر في الجملة الاسمية",
+    "scope": {
+      "branch": "نحو",
+      "source_type": "textbook",
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "direct",
+    "expected": "strong",
+    "id": "ar04",
+    "question": "إعراب المفعول به وعلامات نصبه",
+    "scope": {
+      "branch": "نحو",
+      "grade": "primary_5",
+      "stage": "primary",
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "semi_direct",
+    "expected": "medium",
+    "id": "ar05",
+    "question": "كيف نميز الفاعل من نائب الفاعل؟",
+    "scope": {
+      "branch": "نحو",
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "semi_direct",
+    "expected": "medium",
+    "id": "ar06",
+    "question": "ما الفرق بين الجملة الاسمية والجملة الفعلية؟",
+    "scope": {
+      "branch": "نحو",
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "semi_direct",
+    "expected": "medium",
+    "id": "ar07",
+    "question": "متى تكون علامة رفع المبتدأ الواو؟",
+    "scope": {
+      "branch": "نحو",
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "preparatory",
+    "expected": "medium",
+    "id": "ar08",
+    "question": "حضر لي درس الفاعل للصف الخامس الابتدائي",
+    "scope": {
+      "branch": "نحو",
+      "grade": "primary_5",
+      "source_type": "textbook",
+      "stage": "primary",
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "preparatory",
+    "expected": "medium",
+    "id": "ar09",
+    "question": "كيف أشرح المفعول به للصف الخامس بأمثلة؟",
+    "scope": {
+      "branch": "نحو",
+      "grade": "primary_5",
+      "stage": "primary",
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "vague",
+    "expected": "weak",
+    "id": "ar10",
+    "question": "أفضل طريقة لشرح النحو",
+    "scope": {
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "vague",
+    "expected": "weak",
+    "id": "ar11",
+    "question": "أخطاء شائعة في الإعراب عند التلاميذ",
+    "scope": {
+      "subject": "اللغة العربية"
+    }
+  },
+  {
+    "category": "out_of_scope",
+    "expected": "weak",
+    "id": "ar12",
+    "question": "ما هو الانشطار النووي؟",
+    "scope": {}
+  }
+]

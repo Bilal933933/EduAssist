@@ -1,7 +1,7 @@
 import os
 from sqlalchemy import Column, BigInteger, String, Text, Integer, DateTime, Float, func, Index
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -39,6 +39,8 @@ class KnowledgeChunk(Base):
     source = Column(String(255))
     page = Column(Integer)
     embedding = Column(ARRAY(Float))
+    search_text = Column(Text)
+    search_vector = Column(TSVECTOR)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
@@ -46,3 +48,4 @@ class KnowledgeChunk(Base):
 Index("ix_knowledge_chunks_grade_subject", KnowledgeChunk.grade, KnowledgeChunk.subject)
 Index("ix_knowledge_chunks_stage_subject", KnowledgeChunk.stage, KnowledgeChunk.subject)
 Index("ix_knowledge_chunks_source_type_subject", KnowledgeChunk.source_type, KnowledgeChunk.subject)
+Index("ix_knowledge_chunks_search_vector_gin", KnowledgeChunk.search_vector, postgresql_using="gin")

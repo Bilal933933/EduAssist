@@ -7,8 +7,7 @@ def execute(args: dict, kb, client, inherited_scope=None):
     top_k = int(args.get("top_k", 5))
     from src.agent.chat import embed_question
     try:
-        q_vec = embed_question(client, query)
-        hits = kb.hybrid_search(query, q_vec, top_k=top_k, scope=inherited_scope, candidate_k=40, fused_k=20)
+        hits = kb.hybrid_search(query, None, top_k=top_k, scope=inherited_scope, candidate_k=40, fused_k=20, embed_fn=lambda: embed_question(client, query))
         return hits
     except Exception as e:
         return [{"error": str(e), "title": "خطأ", "text": ""}]

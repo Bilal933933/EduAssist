@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2, X } from "lucide-react";
+import { PanelRightClose, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,8 @@ interface ChatSidebarProps {
   onDeleteThread: (id: number) => void;
   open?: boolean;
   onClose?: () => void;
+  desktopHidden?: boolean;
+  onCollapse?: () => void;
 }
 
 interface SidebarContentProps {
@@ -41,7 +43,7 @@ function SidebarContent({
             onNewChat();
             onItemClick?.();
           }}
-          className="w-full h-10 rounded-xl gap-2 font-semibold shadow-sm"
+          className="w-full h-9 rounded-full gap-2 text-[13px] font-semibold"
         >
           <Plus className="size-4" />
           <span>محادثة جديدة</span>
@@ -81,7 +83,7 @@ function SidebarContent({
                 >
                   <span
                     className={cn(
-                      "block text-sm font-semibold truncate",
+                      "block text-[13px] font-semibold truncate",
                       active ? "text-secondary-foreground" : "text-foreground"
                     )}
                   >
@@ -127,6 +129,8 @@ export function ChatSidebar({
   onDeleteThread,
   open = false,
   onClose,
+  desktopHidden = false,
+  onCollapse,
 }: ChatSidebarProps) {
   const contentProps = {
     threads,
@@ -139,7 +143,24 @@ export function ChatSidebar({
   return (
     <>
       {/* الشريط الجانبي — الشاشات الكبيرة */}
-      <aside className="hidden lg:flex flex-col w-72 shrink-0 border-l border-border/80 bg-card/50 backdrop-blur-sm">
+      <aside
+        className={cn(
+          "hidden lg:flex flex-col w-64 shrink-0 border-l border-border bg-background",
+          desktopHidden && "lg:hidden"
+        )}
+      >
+        <div className="h-12 px-3 flex items-center justify-between shrink-0">
+          <span className="font-bold text-[13px] text-foreground">المحادثات</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCollapse}
+            aria-label="طي القائمة الجانبية"
+            className="size-8 rounded-full text-muted-foreground hover:text-foreground"
+          >
+            <PanelRightClose className="size-4" />
+          </Button>
+        </div>
         <SidebarContent {...contentProps} />
       </aside>
 

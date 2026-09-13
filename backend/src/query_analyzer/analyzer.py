@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 from src.query_analyzer.scope import Scope, ScopeField
 
-INTENTS = ["prepare_lesson","explain","compare","parse","generate_worksheet","generate_exercises","generate_quiz","generate_exam","generate_reading","generate_discussion","generate_visual","generate_revision","correct","review","activity","pedagogical_advice","general_question"]
+INTENTS = ["chitchat","prepare_lesson","explain","compare","parse","generate_worksheet","generate_exercises","generate_quiz","generate_exam","generate_reading","generate_discussion","generate_visual","generate_revision","correct","review","activity","pedagogical_advice","general_question"]
 
 TOPIC_KEYWORDS = {
     "المفعول المطلق": ("اللغة العربية","نحو"),
@@ -13,6 +13,14 @@ TOPIC_KEYWORDS = {
     "التمييز": ("اللغة العربية","نحو"),
     "الحال": ("اللغة العربية","نحو"),
     "النعت": ("اللغة العربية","نحو"),
+    "الميزان الصرفي": ("اللغة العربية","صرف"),
+    "المجرد والمزيد": ("اللغة العربية","صرف"),
+    "التشبيه": ("اللغة العربية","بلاغة"),
+    "الاستعارة": ("اللغة العربية","بلاغة"),
+    "الهمزة المتوسطة": ("اللغة العربية","إملاء"),
+    "التاء المربوطة": ("اللغة العربية","إملاء"),
+    "الفهم القرائي": ("اللغة العربية","قراءة"),
+    "كتابة موضوع": ("اللغة العربية","تعبير"),
 }
 
 @dataclass
@@ -24,13 +32,34 @@ class QueryAnalysis:
     needs_clarification: bool = False
     clarification_question: str | None = None
 
+CHITCHAT_PATTERNS = [
+    "مرحبا", "مرحباً", "اهلا", "أهلا", "أهلاً", "السلام عليكم", "سلام",
+    "صباح الخير", "مساء الخير", "هلا", "هاي",
+    "شكرا", "شكراً", "جزاك الله", "ممتاز", "احسنت", "أحسنت",
+    "من أنت", "من انت", "عرف بنفسك", "كيف حالك", "عامل ايه",
+]
+
+PARSE_KEYWORDS = [
+    "أعرب", "اعرب", "إعرب", "إعراب", "اعراب",
+    "ما إعراب", "ما اعراب", "اعراب الجملة", "إعراب الجملة",
+]
+
+def _is_chitchat(q: str) -> bool:
+    qs = q.strip()
+    if len(qs) <= 30 and any(p in qs for p in CHITCHAT_PATTERNS):
+        return True
+    return False
+
+
 def _detect_intent(q: str) -> str:
     ql = q.strip()
+    if _is_chitchat(ql):
+        return "chitchat"
     if any(k in ql for k in ["حضر لي درس", "حضّر", "خطة درس", "سير حصة", "تحضير"]):
         return "prepare_lesson"
     if "الفرق بين" in ql:
         return "compare"
-    if ql.startswith("أعرب") or "إعراب" in ql:
+    if ql.startswith(("أعرب", "اعرب", "إعرب")) or any(k in ql for k in PARSE_KEYWORDS):
         return "parse"
     if "ورقة عمل" in ql:
         return "generate_worksheet"

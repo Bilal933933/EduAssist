@@ -11,13 +11,28 @@ def _load(rel: str) -> str:
 def compose(analysis, evidence_text: str = "") -> tuple[str, str]:
     intent = analysis.intent
     stage = analysis.scope.stage.value or "prep"
-    branch = analysis.scope.branch.value or "نحو"
+    branch = analysis.scope.branch.value or "general"
 
     core = _load("core/system.md")
     intent_p = _load(f"intents/{intent}.md") or _load("intents/explain.md")
     grade_file = "prep.md" if stage in ("prep","secondary") else "primary.md"
     grade_p = _load(f"grades/{grade_file}")
-    branch_p = _load(f"branches/grammar.md") if "نحو" in branch else ""
+    branch_files = {
+        "نحو": "branches/grammar.md",
+        "صرف": "branches/morphology.md",
+        "بلاغة": "branches/rhetoric.md",
+        "إملاء": "branches/spelling.md",
+        "قراءة": "branches/reading.md",
+        "نصوص": "branches/reading.md",
+        "أدب": "branches/reading.md",
+        "تعبير": "branches/expression.md",
+    }
+    branch_p = ""
+    for key, rel in branch_files.items():
+        if key in (branch or ""):
+            branch_p = _load(rel)
+            if branch_p:
+                break
     citations = _load("shared/citations.md")
     evidence_header = _load("shared/evidence.md")
 

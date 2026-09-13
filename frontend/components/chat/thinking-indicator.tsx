@@ -1,23 +1,29 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toArabicStepLabel } from "@/lib/agent-labels";
 
+// وظيفة واحدة: مؤشر انتظار نحيف بأسلوب Gemini — بدون بطاقة أو أفاتار.
 export function ThinkingIndicator({ message }: { message?: string }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    setElapsed(0);
+    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
   return (
-    <div className="flex justify-end items-start gap-3 my-5">
-      <div className="bg-card border border-border/80 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center gap-3 ring-1 ring-border/50 text-right will-change-transform" dir="rtl">
-        <span className="text-xs text-muted-foreground font-medium">
-          {message || "جاري استرجاع القواعد وتحليل الشواهد النحوية..."}
-        </span>
-        <div className="flex gap-1.5 items-center">
-          <span className="size-2 rounded-full bg-primary animate-bounce [animation-delay:-0.3s] will-change-transform"></span>
-          <span className="size-2 rounded-full bg-primary animate-bounce [animation-delay:-0.15s] will-change-transform"></span>
-          <span className="size-2 rounded-full bg-primary animate-bounce will-change-transform"></span>
-        </div>
+    <div className="flex items-center gap-2 my-4 pr-9" dir="rtl" role="status" aria-live="polite">
+      <div className="flex gap-1 items-center shrink-0" aria-hidden="true">
+        <span className="size-1.5 rounded-full bg-foreground/50 animate-bounce [animation-delay:-0.3s]" />
+        <span className="size-1.5 rounded-full bg-foreground/50 animate-bounce [animation-delay:-0.15s]" />
+        <span className="size-1.5 rounded-full bg-foreground/50 animate-bounce" />
       </div>
-      <div className="size-9 rounded-full bg-gradient-to-tr from-primary to-emerald-700 text-white flex items-center justify-center shrink-0 mt-1 shadow-md">
-        <Sparkles className="size-4 text-amber-300" />
-      </div>
+      <p className="text-sm text-muted-foreground">
+        {toArabicStepLabel(message || "") || "أبحث في مصادرك وأجهز الإجابة..."}
+        <span className="tabular-nums"> · {elapsed} ث</span>
+      </p>
     </div>
   );
 }

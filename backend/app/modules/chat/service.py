@@ -1,6 +1,23 @@
 from fastapi import HTTPException
 from src.agent.loop import run_agentic_rag, run_agentic_rag_stream
+from src.agent.router import route, get_chitchat_reply
+from src.agent.fc_client import call_simple
 from src.query_analyzer.analyzer import analyze
+
+
+def _direct_answer(question: str, client) -> str:
+    """رد فوري للتحيات بلا أي بحث. ثابت أولاً، ثم LLM عند الغموض."""
+    fixed = get_chitchat_reply(question)
+    if fixed:
+        return fixed
+    try:
+        return call_simple(
+            client,
+            question,
+            "أنت مساعد المدرس الذكي للغة العربية. رد باختصار ولطف بالعربية. إن سُئلت عن هويتك عرّف نفسك كمساعد تحضير دروس العربية.",
+        )
+    except Exception:
+        return "أهلاً بك! كيف أساعدك في دروس اللغة العربية اليوم؟"
 
 
 def _update_teacher_memory(analysis, question: str, teacher_id: str = "default"):
@@ -74,6 +91,14 @@ class ChatService:
                         "prev_question": last_q,
                     }
         analysis = analyze(question, context)
+        mode = route(analysis)
+        if mode == "direct":
+            if thread_id is None:
+                thread_id = store.create_thread(title=question[:50])["id"]
+            answer = _direct_answer(question, client)
+            store.add_message(thread_id, "user", question)
+            store.add_message(thread_id, "assistant", answer, sources=[])
+            return {"answer": answer, "hits": [], "trace": [{"tool": "direct"}], "thread_id": thread_id}
         if thread_id is None and analysis.needs_clarification:
             return {
                 "clarification": {
@@ -93,6 +118,7 @@ class ChatService:
             max_iterations=3,
             analysis=analysis,
             teacher_id=teacher_id,
+            light=(mode == "light"),
         )
         if isinstance(answer, str) and answer.startswith("CLARIFY:"):
             return {
@@ -138,6 +164,18 @@ class ChatService:
                     "prev_question": last_q,
                 }
         analysis = analyze(question, context)
+        mode = route(analysis)
+        if mode == "direct":
+            if is_new:
+                thread_id = store.create_thread(title=question[:50])["id"]
+            store.add_message(thread_id, "user", question)
+            answer = _direct_answer(question, client)
+            store.add_message(thread_id, "assistant", answer, sources=[])
+
+            async def direct_gen():
+                yield {"type": "answer_chunk", "text": answer}
+                yield {"type": "done", "hits": [], "trace": [{"tool": "direct"}], "full": answer}
+            return direct_gen(), thread_id
         if is_new and analysis.needs_clarification:
             async def clarify_gen():
                 import json
@@ -149,7 +187,8 @@ class ChatService:
         _update_teacher_memory(analysis, question, teacher_id=teacher_id)
         return (
             run_agentic_rag_stream(
-                client, kb, question, history, analysis=analysis, teacher_id=teacher_id
+                client, kb, question, history, analysis=analysis, teacher_id=teacher_id,
+                light=(mode == "light"),
             ),
             thread_id,
         )

@@ -1,5 +1,5 @@
 import numpy as np
-from sqlalchemy import select, create_engine, text
+from sqlalchemy import select, create_engine, func, text
 from sqlalchemy.orm import sessionmaker
 from src.knowledge.models import KnowledgeChunk, Base, DB_URL
 
@@ -30,6 +30,10 @@ class VectorStore:
         if self.engine.dialect.name != "postgresql":
             return
         with self.engine.begin() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+            conn.execute(text('ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS "search_text" TEXT'))
+            conn.execute(text('ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS "search_vector" TSVECTOR'))
+            conn.execute(text('CREATE INDEX IF NOT EXISTS "ix_knowledge_chunks_search_vector_gin" ON knowledge_chunks USING GIN ("search_vector")'))
             for column, sql_type in METADATA_COLUMNS.items():
                 conn.execute(text(
                     f'ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS "{column}" {sql_type}'
@@ -64,6 +68,21 @@ class VectorStore:
             "concepts": concepts,
         }
 
+    def _search_text(self, chunk: dict) -> str:
+        try:
+            from src.knowledge.search import _normalize_arabic
+        except ImportError:
+            from knowledge.search import _normalize_arabic  # type: ignore
+        parts = [
+            chunk.get("title") or "",
+            (chunk.get("text") or "")[:2000],
+            chunk.get("lesson") or "",
+            chunk.get("unit") or "",
+            chunk.get("source") or "",
+            " ".join(chunk.get("concepts") or [] if isinstance(chunk.get("concepts"), list) else [str(chunk.get("concepts"))]),
+        ]
+        return _normalize_arabic(" ".join(p for p in parts if p))
+
     def upsert(self, chunk: dict, embedding: list):
         session = self.Session()
         try:
@@ -72,6 +91,7 @@ class VectorStore:
                 select(KnowledgeChunk).where(KnowledgeChunk.doc_key == doc_key)
             ).scalar_one_or_none()
             values = self._metadata_values(chunk)
+            stext = self._search_text(chunk)
             if existing:
                 existing.doc_path = chunk.get("doc_path", existing.doc_path)
                 existing.doc_type = chunk.get("doc_type", values["source_type"]) or existing.doc_type
@@ -80,6 +100,8 @@ class VectorStore:
                 existing.source = chunk.get("source", existing.source)
                 existing.page = chunk.get("page", existing.page)
                 existing.embedding = np.array(embedding, dtype=np.float32).tolist()
+                existing.search_text = stext
+                existing.search_vector = func.to_tsvector("simple", stext)
                 for key, value in values.items():
                     setattr(existing, key, value)
             else:
@@ -92,6 +114,8 @@ class VectorStore:
                     source=chunk.get("source", ""),
                     page=chunk.get("page"),
                     embedding=np.array(embedding, dtype=np.float32).tolist(),
+                    search_text=stext,
+                    search_vector=func.to_tsvector("simple", stext),
                     **values,
                 )
                 session.add(new_chunk)
@@ -123,6 +147,9 @@ class VectorStore:
                 row.text = chunk.get("text", row.text)
                 row.source = chunk.get("source", row.source)
                 row.page = chunk.get("page", row.page)
+                stext = self._search_text({**{"title": row.title, "text": row.text, "source": row.source, "lesson": row.lesson, "unit": row.unit, "concepts": row.concepts}, **chunk})
+                row.search_text = stext
+                row.search_vector = func.to_tsvector("simple", stext)
                 for field, value in values.items():
                     setattr(row, field, value)
                 updated += 1

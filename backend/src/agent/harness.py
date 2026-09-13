@@ -76,9 +76,9 @@ def run(client, kb, question, history=None, max_iterations=4, analysis=None):
             if file_contents:
                 user += "\n\n[ملفات]\n" + "\n".join(f"{k}: {v[:400]}" for k,v in file_contents.items())
         except Exception:
-            system, user = build_teacher_prompt(question, all_hits, history, file_contents)
+            system, user = build_teacher_prompt(question, all_hits, history, file_contents, scope=scope, analysis=analysis)
     else:
-        system, user = build_teacher_prompt(question, all_hits, history, file_contents)
+        system, user = build_teacher_prompt(question, all_hits, history, file_contents, scope=scope, analysis=analysis)
 
     answer = call_simple(client, user, system)
     trace.append({"tool": "generate", "hits": len(all_hits)})

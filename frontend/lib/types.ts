@@ -6,12 +6,20 @@ export interface KnowledgeHit {
   similarity: number;
 }
 
+export interface AgentTraceStep {
+  label: string;
+  detail?: string;
+}
+
 export interface ChatMessage {
   id: string;
   content: string;
   role: "user" | "assistant";
   createdAt: Date;
   hits?: KnowledgeHit[];
+  trace?: AgentTraceStep[];
+  durationMs?: number;
+  streaming?: boolean;
 }
 
 export interface ChatResponse {

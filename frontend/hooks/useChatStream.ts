@@ -5,6 +5,8 @@ import { authHeader } from "@/lib/auth";
 
 export function useChatStream() {
   const [status, setStatus] = useState<string | null>(null);
+  const [steps, setSteps] = useState<{ label: string }[]>([]);
+  const [durationMs, setDurationMs] = useState<number | undefined>(undefined);
 
   const stream = useCallback(async (
     question: string,
@@ -23,6 +25,9 @@ export function useChatStream() {
     let buffer = "";
     let finalHits: any[] = [];
     let finalThreadId: number | null = null;
+    const startedAt = Date.now();
+    setSteps([]);
+    setDurationMs(undefined);
 
     while (true) {
       const { done, value } = await reader.read();
@@ -33,7 +38,10 @@ export function useChatStream() {
       for (const line of lines) {
         if (!line.startsWith("data: ")) continue;
         const data = JSON.parse(line.slice(6));
-        if (data.type === "status") setStatus(data.message);
+        if (data.type === "status") {
+          setStatus(data.message);
+          setSteps((prev) => (prev[prev.length - 1]?.label === data.message ? prev : [...prev, { label: data.message }]));
+        }
         else if (data.type === "answer_chunk") {
           setStatus(null);
           onChunk(data.text);
@@ -43,8 +51,9 @@ export function useChatStream() {
       }
     }
     setStatus(null);
+    setDurationMs(Date.now() - startedAt);
     onDone(finalHits, finalThreadId);
   }, []);
 
-  return { status, setStatus, stream };
+  return { status, setStatus, steps, durationMs, stream };
 }
