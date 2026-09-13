@@ -3,6 +3,9 @@ from src.agent.loop import run_agentic_rag, run_agentic_rag_stream
 from src.agent.router import route, get_chitchat_reply
 from src.agent.fc_client import call_simple
 from src.query_analyzer.analyzer import analyze
+from app.modules.tutor_orchestrator.application.route_message_use_case import (
+    resolve_module,
+)
 
 
 def _direct_answer(question: str, client) -> str:
@@ -55,6 +58,17 @@ def _update_teacher_memory(analysis, question: str, teacher_id: str = "default")
         print(f"[TeacherMemory update skip: {e}]")
 
 
+def _resolve(question: str, context: dict):
+    """نقطة التوجيه الوحيدة: analyze ← module ← mode.
+
+    تُستدعى من handle() وstream() معاً حتى لا ينحرف المنطق بينهما (DRY).
+    """
+    analysis = analyze(question, context)
+    module = resolve_module(analysis)
+    mode = route(analysis)
+    return analysis, module, mode
+
+
 class ChatService:
     """Feature service — analyzer → clarify → retrieval → compose → LLM."""
 
@@ -90,8 +104,11 @@ class ChatService:
                         "intent": ctx_analysis.intent,
                         "prev_question": last_q,
                     }
-        analysis = analyze(question, context)
-        mode = route(analysis)
+        # المرحلة 1: module محسوب وموثق فقط — كل الوحدات تستخدم
+        # السلوك الحالي نفسه (صفر تغيير سلوكي).
+        # TODO(المرحلة 2): توجيه GRAMMAR/CONVERSATION لوحداتهما.
+        analysis, module, mode = _resolve(question, context)
+        _ = module
         if mode == "direct":
             if thread_id is None:
                 thread_id = store.create_thread(title=question[:50])["id"]
@@ -163,8 +180,9 @@ class ChatService:
                     "intent": ctx_a.intent,
                     "prev_question": last_q,
                 }
-        analysis = analyze(question, context)
-        mode = route(analysis)
+        # المرحلة 1: انظر التعليق في handle() — نفس السلوك الحالي لكل الوحدات.
+        analysis, module, mode = _resolve(question, context)
+        _ = module
         if mode == "direct":
             if is_new:
                 thread_id = store.create_thread(title=question[:50])["id"]
