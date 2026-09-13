@@ -1,0 +1,51 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - banner [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e10]:
+            - generic [ref=e11]:
+              - heading "البيان" [level=1] [ref=e12]
+              - generic [ref=e13]: توليدي (RAG)
+            - paragraph [ref=e17]: المساعد الذكي لقواعد النحو العربي وشواهده
+          - generic [ref=e18]:
+            - generic [ref=e24]:
+              - strong [ref=e25]: "53"
+              - text: مقتطف مفهرس
+            - button "محادثة جديدة" [ref=e99]
+      - main [ref=e28]:
+        - generic [ref=e30]:
+          - generic [ref=e109]:
+            - generic [ref=e110]: "أعرب الجملة: إنّ مع العسرِ يسراً"
+            - generic [ref=e111]: ٠٢:٥٣ م
+          - generic [ref=e131]:
+            - generic [ref=e132]:
+              - paragraph [ref=e133]:
+                - text: "مثال:"
+                - generic [ref=e134]: «إِنَّ مِنَ الشِّعْرِ حِكْمَةً»
+                - text: .
+              - paragraph [ref=e136]: "أهلاً بك يا بني. بالاعتماد على المحتوى المتاح، يمكننا توضيح إعراب الجملة كالتالي:"
+              - generic [ref=e140]:
+                - strong [ref=e141]: إنَّ
+                - text: ": حرف ناسخ يدخل على الجملة الاسمية، ينصب الاسم ويرفع الخبر."
+              - generic [ref=e144]:
+                - strong [ref=e145]: يسراً
+                - text: ": اسم (إنَّ) منصوب بالفتحة (وفق قاعدة: إن تنصب الاسم بالفتحة)."
+              - generic [ref=e148]:
+                - strong [ref=e149]: مع العسرِ
+                - text: ": خبر (إنَّ) ونوعه \"شبه جملة\" (وفق قاعدة: الخبر يكون مفرداً أو جملة أو شبه جملة)."
+              - paragraph [ref=e151]: "ملاحظة: الإعراب التفصيلي المفصل لكلمة (مع) وكلمة (العسر) كلٍّ على حدة غير موجود في المحتوى المقدم."
+            - generic [ref=e152]:
+              - button "نسخ النص" [ref=e154]
+              - generic [ref=e159]: ٠٢:٥٤ م
+            - button "المصادر والمراجع النحوية (3 مراجع)" [ref=e161]
+      - contentinfo [ref=e81]:
+        - generic [ref=e83]:
+          - 'textbox "اطرح سؤالك النحوي هنا... (مثال: ما إعراب ''إياك نعبد''؟)" [ref=e84]'
+          - generic [ref=e85]:
+            - generic [ref=e86]: مدعوم بـ Gemini 3.6 Flash & RAG
+            - generic [ref=e91]:
+              - generic [ref=e92]: Enter للإرسال
+              - button "إرسال" [disabled]
+    - region "Notifications alt+T"
+  - alert [ref=e93]

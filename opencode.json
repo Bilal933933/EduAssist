@@ -1,0 +1,150 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "provider": {
+        "openrouter": {
+            "options": {
+                "timeout": 300000,
+                "headerTimeout": 60000,
+                "chunkTimeout": 30000
+            }
+        },
+        "google": {
+            "options": {
+                "timeout": 300000,
+                "headerTimeout": 60000,
+                "chunkTimeout": 30000
+            }
+        },
+        "opencode": {
+            "options": {
+                "timeout": 300000,
+                "headerTimeout": 60000,
+                "chunkTimeout": 30000
+            }
+        }
+    },
+    "mcp": {
+        "playwright": {
+            "type": "local",
+            "enabled": true,
+            "command": [
+                "npx",
+                "@playwright/mcp"
+            ],
+            "timeout": 60000
+        },
+        "ui-skills": {
+            "type": "remote",
+            "url": "https://www.ui-skills.com/mcp",
+            "enabled": true
+        }
+    },
+    "experimental": {
+        "mcp_timeout": 60000,
+        "batch_tool": true,
+        "continue_loop_on_deny": true
+    },
+    "agent": {
+        "rag-specialist": {
+            "model": "google/gemini-1.5-pro",
+            "mode": "subagent",
+            "description": "RAG pipeline: embedding, vector search, hybrid retrieval, context injection",
+            "permission": { "edit": "allow", "bash": "allow" }
+        },
+        "frontend-dev": {
+            "model": "anthropic/claude-sonnet-4-6",
+            "mode": "subagent",
+            "description": "Next.js 16, React 19, Tailwind 4, TypeScript — UI components, RTL Arabic",
+            "permission": { "edit": "allow", "bash": "allow" }
+        },
+        "backend-dev": {
+            "model": "anthropic/claude-sonnet-4-6",
+            "mode": "subagent",
+            "description": "FastAPI, PostgreSQL/pgvector, SQLAlchemy, Gemini API — API endpoints, RAG logic",
+            "permission": { "edit": "allow", "bash": "allow" }
+        },
+        "indexer": {
+            "model": "google/gemini-1.5-pro",
+            "mode": "subagent",
+            "description": "Knowledge indexing: chunking, embeddings, vector storage, resume capability",
+            "permission": { "edit": "allow", "bash": "allow" }
+        }
+    },
+    "command": {
+        "index": {
+            "description": "Run knowledge indexer (resumable)",
+            "template": "cd backend && python src/indexer.py $ARGUMENTS"
+        },
+        "chat": {
+            "description": "Start interactive CLI chat",
+            "template": "cd backend && python src/main.py $ARGUMENTS"
+        },
+        "dev:backend": {
+            "description": "Start FastAPI backend with reload",
+            "template": "cd backend && python main.py $ARGUMENTS"
+        },
+        "dev:frontend": {
+            "description": "Start Next.js frontend dev server",
+            "template": "cd frontend && npm run dev $ARGUMENTS"
+        },
+        "test": {
+            "description": "Run tests",
+            "template": "cd backend && python -m pytest $ARGUMENTS"
+        },
+        "lint:frontend": {
+            "description": "Run frontend linter",
+            "template": "cd frontend && npm run lint $ARGUMENTS"
+        },
+        "build:frontend": {
+            "description": "Build frontend for production",
+            "template": "cd frontend && npm run build $ARGUMENTS"
+        }
+    },
+    "references": {
+        "gemini-docs": {
+            "repository": "google-gemini/gemini-api-docs",
+            "branch": "main",
+            "description": "Gemini API documentation and examples"
+        },
+        "fastapi-docs": {
+            "repository": "fastapi/fastapi",
+            "branch": "master",
+            "description": "FastAPI framework documentation"
+        },
+        "nextjs-docs": {
+            "repository": "vercel/next.js",
+            "branch": "canary",
+            "description": "Next.js 16 (React 19) documentation"
+        },
+        "tailwind-docs": {
+            "repository": "tailwindlabs/tailwindcss",
+            "branch": "v4",
+            "description": "Tailwind CSS v4 documentation"
+        },
+        "pgvector-docs": {
+            "repository": "pgvector/pgvector",
+            "branch": "master",
+            "description": "pgvector PostgreSQL extension for vector search"
+        },
+        "project-docs": {
+            "path": ".",
+            "description": "Project specifications and AGENTS.md"
+        }
+    },
+    "permission": {
+        "edit": "ask",
+        "bash": {
+            "python *": "allow",
+            "npm *": "allow",
+            "npx *": "allow",
+            "git *": "allow",
+            "*": "ask"
+        },
+        "external_directory": {
+            "~/projects/**": "allow"
+        }
+    },
+    "skills": {
+        "paths": [".opencode/skills", "~/.config/opencode/skills"]
+    }
+}

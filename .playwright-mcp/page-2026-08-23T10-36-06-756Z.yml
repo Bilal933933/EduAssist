@@ -1,0 +1,31 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - generic [ref=f1e3]:
+      - banner [ref=f1e4]:
+        - generic [ref=f1e5]:
+          - generic [ref=f1e10]:
+            - generic [ref=f1e11]:
+              - heading "البيان" [level=1] [ref=f1e12]
+              - generic [ref=f1e13]: توليدي (RAG)
+            - paragraph [ref=f1e17]: المساعد الذكي لقواعد النحو العربي وشواهده
+          - generic [ref=f1e18]:
+            - generic [ref=f1e24]:
+              - strong [ref=f1e25]: "53"
+              - text: مقتطف مفهرس
+            - button "محادثة جديدة" [ref=f1e94]
+      - main [ref=f1e28]:
+        - generic [ref=f1e30]:
+          - generic [ref=f1e100]:
+            - generic [ref=f1e101]: ما الفرق بين الفاعل ونائب الفاعل مع الأمثلة والشواهد؟
+            - generic [ref=f1e102]: ٠١:٣٦ م
+          - generic [ref=f1e107]: جاري استرجاع القواعد وتحليل الشواهد النحوية...
+      - contentinfo [ref=f1e81]:
+        - generic [ref=f1e83]:
+          - 'textbox "اطرح سؤالك النحوي هنا... (مثال: ما إعراب ''إياك نعبد''؟)" [disabled] [ref=f1e84]'
+          - generic [ref=f1e85]:
+            - generic [ref=f1e86]: مدعوم بـ Gemini 3.6 Flash & RAG
+            - generic [ref=f1e91]:
+              - generic [ref=f1e92]: Enter للإرسال
+              - button "إرسال" [disabled]
+    - region "Notifications alt+T"
+  - alert [ref=f1e93]

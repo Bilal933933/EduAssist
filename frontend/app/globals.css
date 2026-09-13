@@ -1,0 +1,180 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-arabic), system-ui, -apple-system, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+/* Custom Utilities using @utility (Tailwind v4 CSS-first) */
+@utility container {
+  @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+@utility animate-in {
+  animation: enter var(--animate-duration-normal, 200ms) var(--animate-easing-default, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@utility fade-in {
+  animation: fadeIn var(--animate-duration-normal, 200ms) var(--animate-easing-default, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@utility slide-in-from-top {
+  animation: slideInFromTop var(--animate-duration-normal, 200ms) var(--animate-easing-default, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@utility slide-in-from-bottom {
+  animation: slideInFromBottom var(--animate-duration-normal, 200ms) var(--animate-easing-default, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@utility slide-in-from-left {
+  animation: slideInFromLeft var(--animate-duration-normal, 200ms) var(--animate-easing-default, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@utility slide-in-from-right {
+  animation: slideInFromRight var(--animate-duration-normal, 200ms) var(--animate-easing-default, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInFromTop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInFromBottom {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInFromLeft {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root {
+  /* Strictly Chocolaty Brown & Cream (Light Mode) - فيديو 3 */
+  --background: #f7f4ed;         /* كريمي عاجي ناعم */
+  --foreground: #1c1410;
+  --card: #ffffff;
+  --card-foreground: #1c1410;
+  --popover: #ffffff;
+  --popover-foreground: #1c1410;
+  --primary: #4a2717;            /* بني شوكولاتي فاخر */
+  --primary-foreground: #f7f4ed;
+  --secondary: #eee5d8;          /* كريمي خشب دافئ */
+  --secondary-foreground: #30170c;
+  --muted: #e8ded0;
+  --muted-foreground: #615047;
+  --accent: #4a2717;
+  --accent-foreground: #ffffff;
+  --destructive: #7f1d1d;
+  --border: #dfd2c2;
+  --input: #dfd2c2;
+  --ring: #4a2717;
+  --radius: 0.875rem;
+}
+
+.dark {
+  /* Strictly Chocolaty Brown & Cream (Dark Mode) */
+  --background: #120c09;         /* بني فحمي داكن */
+  --foreground: #f2ece4;
+  --card: #1c130e;
+  --card-foreground: #f2ece4;
+  --popover: #1c130e;
+  --popover-foreground: #f2ece4;
+  --primary: #5c321e;            /* بني شوكولاتي غني */
+  --primary-foreground: #ffffff;
+  --secondary: #281912;
+  --secondary-foreground: #e4d3c4;
+  --muted: #241710;
+  --muted-foreground: #948277;
+  --accent: #5c321e;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: #332219;
+  --input: #332219;
+  --ring: #5c321e;
+}
+
+/* Scrollbar بلون بني خشب */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #302017;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5c321e;
+}
+
+/* RTL Helpers */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}

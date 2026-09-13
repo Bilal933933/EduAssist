@@ -1,0 +1,32 @@
+{
+  "name": "realtime-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Realtime Gateway: Socket.IO + Auth + Internal AI Proxy",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "start:dev": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11",
+    "@nestjs/core": "^11",
+    "@nestjs/platform-express": "^11",
+    "@nestjs/platform-socket.io": "^11",
+    "@nestjs/websockets": "^11",
+    "axios": "^1",
+    "dotenv": "^16",
+    "jsonwebtoken": "^9",
+    "pg": "^8",
+    "reflect-metadata": "^0.2",
+    "rxjs": "^7",
+    "socket.io": "^4"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9",
+    "@types/node": "^22",
+    "@types/pg": "^8",
+    "typescript": "^5"
+  }
+}

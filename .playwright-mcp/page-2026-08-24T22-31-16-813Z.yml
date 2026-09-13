@@ -1,0 +1,71 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - button "محادثة جديدة" [ref=e6]
+        - navigation "المحادثات السابقة" [ref=e9]:
+          - generic [ref=e104]:
+            - 'button "أعرب الجملة: «إنّ مع العسرِ يسراً» بالتفصيل 2 رسالة" [active] [ref=e105] [cursor=pointer]':
+              - generic [ref=e106]: "أعرب الجملة: «إنّ مع العسرِ يسراً» بالتفصيل"
+              - generic [ref=e107]: 2 رسالة
+            - 'button "حذف محادثة: أعرب الجملة: «إنّ مع العسرِ يسراً» بالتفصيل" [ref=e108]'
+        - generic [ref=e11]:
+          - generic [ref=e12]: المظهر
+          - button "التبديل إلى الوضع الليلي" [ref=e13]
+      - generic [ref=e15]:
+        - banner [ref=e16]:
+          - generic [ref=e17]:
+            - generic [ref=e22]:
+              - generic [ref=e23]:
+                - heading "البيان" [level=1] [ref=e24]
+                - generic [ref=e25]: توليدي (RAG)
+              - paragraph [ref=e29]: المساعد الذكي لقواعد النحو العربي وشواهده
+            - generic [ref=e35]:
+              - strong [ref=e36]: "53"
+              - text: مقتطف مفهرس
+        - main [ref=e39]:
+          - generic [ref=e41]:
+            - generic [ref=e120]:
+              - generic [ref=e121]: "أعرب الجملة: «إنّ مع العسرِ يسراً» بالتفصيل"
+              - generic [ref=e122]: ٠٧:٣٢ م
+            - generic [ref=e125]:
+              - generic [ref=e126]:
+                - paragraph [ref=e127]:
+                  - text: "مثال بسيط:"
+                  - strong [ref=e128]: إنَّ العلمَ نورٌ
+                  - text: (حيث "إنّ" تنصب الاسم "العلمَ" وترفع الخبر "نورٌ").
+                - paragraph [ref=e130]:
+                  - text: بناءً على القواعد المحددة في المحتوى المتاح، إليك إعراب جملة
+                  - strong [ref=e131]:
+                    - generic [ref=e132]: «إنَّ مع العسرِ يسراً»
+                  - text: ":"
+                - generic [ref=e136]:
+                  - strong [ref=e137]: "إنَّ:"
+                  - text: حرف ناسخ يدخل على الجملة الاسمية، ينصب الاسم ويرفع الخبر.
+                - generic [ref=e140]:
+                  - strong [ref=e141]: "مع العسرِ:"
+                  - text: شبه جملة في محل رفع خبر
+                  - generic [ref=e142]: «إنّ»
+                  - text: "مقدم (وفقاً للمحتوى: الخبر يكون شبه جملة، وإنّ ترفع الخبر)."
+                - generic [ref=e145]:
+                  - strong [ref=e146]: "يسراً:"
+                  - text: اسم
+                  - generic [ref=e147]: «إنّ»
+                  - text: "مؤخر، اسم منصوب وعلامة نصبه الفتحة (وفقاً للمحتوى: إنّ تنصب الاسم بالفتحة)."
+                - paragraph [ref=e149]:
+                  - strong [ref=e150]: "ملاحظة:"
+                  - text: تفاصيل إعراب كلمتي (مع) و(العسر) كل كلمة على حدة كظرف ومضاف إليه غير مذكورة في المحتوى المتاح، ولذا اقتصر الإعراب على ما ورد في النص من قواعد إعراب (إنّ واسمها وخبرها وشبه الجملة).
+              - generic [ref=e151]:
+                - button "نسخ النص" [ref=e153]
+                - generic [ref=e158]: ٠٧:٣٢ م
+              - button "المصادر والمراجع النحوية (3 مراجع)" [ref=e160]
+        - contentinfo [ref=e92]:
+          - generic [ref=e94]:
+            - 'textbox "اطرح سؤالك النحوي هنا... (مثال: ما إعراب ''إياك نعبد''؟)" [ref=e95]'
+            - generic [ref=e96]:
+              - generic [ref=e97]: مدعوم بـ Gemini 3.6 Flash & RAG
+              - generic [ref=e102]:
+                - generic [ref=e103]: Enter للإرسال
+                - button "إرسال" [disabled]
+    - region "Notifications alt+T"
+  - alert [ref=e114]

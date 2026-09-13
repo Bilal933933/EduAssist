@@ -1,0 +1,73 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - generic [ref=f1e3]:
+      - banner [ref=f1e4]:
+        - generic [ref=f1e5]:
+          - generic [ref=f1e10]:
+            - generic [ref=f1e11]:
+              - heading "البيان" [level=1] [ref=f1e12]
+              - generic [ref=f1e13]: توليدي (RAG)
+            - paragraph [ref=f1e17]: المساعد الذكي لقواعد النحو العربي وشواهده
+          - generic [ref=f1e18]:
+            - generic [ref=f1e24]:
+              - strong [ref=f1e25]: "53"
+              - text: مقتطف مفهرس
+            - button "محادثة جديدة" [ref=f1e94]
+      - main [ref=f1e28]:
+        - generic [ref=f1e30]:
+          - generic [ref=f1e100]:
+            - generic [ref=f1e101]: ما الفرق بين الفاعل ونائب الفاعل مع الأمثلة والشواهد؟
+            - generic [ref=f1e102]: ٠١:٣٦ م
+          - generic [ref=f1e126]:
+            - generic [ref=f1e127]:
+              - paragraph [ref=f1e128]: "مثال:"
+              - paragraph [ref=f1e129]:
+                - text: "الفاعل:"
+                - generic [ref=f1e130]: «حَرَّرَ **الْفَلَسْطِينِيُّونَ** الْقُدْسَ»
+                - text: .
+              - paragraph [ref=f1e131]:
+                - text: "نائب الفاعل:"
+                - generic [ref=f1e132]: «نُصِرَتْ **فَلَسْطِينُ**»
+                - text: .
+              - paragraph [ref=f1e134]: "أهلاً بك يا بني. بناءً على المحتوى المتاح لدينا، إليك البيان والفرق بينهما:"
+              - paragraph [ref=f1e136]:
+                - strong [ref=f1e137]: "1. الفاعل:"
+              - generic [ref=f1e140]:
+                - strong [ref=f1e141]: "تعريفه:"
+                - text: هو اسم مرفوع يأتي بعد الفعل، وهو اسمٌ محكومٌ عليه (من المسند إليه).
+              - generic [ref=f1e144]:
+                - strong [ref=f1e145]: "أنواعه:"
+                - text: يكون اسماً ظاهراً أو ضميراً.
+              - generic [ref=f1e148]:
+                - strong [ref=f1e149]: "علامات رفعه:"
+                - text: يُرفع بالضمة في المفرد، وبالألف في المثنى، وبالواو في الجمع.
+              - generic [ref=f1e152]:
+                - strong [ref=f1e153]: "المثال والشاهد من النص:"
+                - generic [ref=f1e154]: «حَرَّرَ **الْفَلَسْطِينِيُّونَ** الْقُدْسَ»
+                - text: "(الفلسطينيون: فاعل مرفوع بالواو)."
+              - paragraph [ref=f1e156]:
+                - strong [ref=f1e157]: "2. نائب الفاعل:"
+              - generic [ref=f1e160]:
+                - strong [ref=f1e161]: "تعريفه في النص:"
+                - text: ورد في المحتوى أنه صورة من صور "المسند إليه" (أي الاسم المحكوم عليه) في الجملة.
+              - generic [ref=f1e164]:
+                - strong [ref=f1e165]: "المثال والشاهد من النص:"
+                - generic [ref=f1e166]: «نُصِرَتْ **فَلَسْطِينُ**»
+                - text: "(فلسطينُ: نائب فاعل)."
+              - paragraph [ref=f1e168]:
+                - strong [ref=f1e169]: "ملاحظة:"
+                - text: يُرجى الانتباه إلى أن المحتوى المتاح لا يحتوي على تفاصيل أكثر أو قواعد شاردة تبيّن الفروق التفصيلية الأخرى بينهما (مثل كيفية صياغة الفعل للمجهول أو شروط إنابة المفعول به)، ولذلك اقتصرتُ على ما ورد في النص بوضوح.
+            - generic [ref=f1e170]:
+              - button "نسخ النص" [ref=f1e172]
+              - generic [ref=f1e177]: ٠١:٣٦ م
+            - button "المصادر والمراجع النحوية المعتمدة (3 مراجع)" [ref=f1e179]
+      - contentinfo [ref=f1e81]:
+        - generic [ref=f1e83]:
+          - 'textbox "اطرح سؤالك النحوي هنا... (مثال: ما إعراب ''إياك نعبد''؟)" [ref=f1e84]'
+          - generic [ref=f1e85]:
+            - generic [ref=f1e86]: مدعوم بـ Gemini 3.6 Flash & RAG
+            - generic [ref=f1e91]:
+              - generic [ref=f1e92]: Enter للإرسال
+              - button "إرسال" [disabled]
+    - region "Notifications alt+T"
+  - alert [ref=f1e93]

@@ -1,0 +1,57 @@
+# شبكة داخلية مقفولة: postgres + ai-chat لا ينشران أي منفذ للعالم.
+# المنفذ الوحيد المكشوف هو بوابة realtime:3001 — كل شيء يمر منها.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: agt_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "12345678"
+      POSTGRES_DB: ai_grammar_tutor
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ai_grammar_tutor"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  ai-chat:
+    build: ./backend
+    container_name: agt_ai_chat
+    env_file: ./backend/.env
+    environment:
+      VECTOR_DATABASE_URL: postgresql://postgres:12345678@postgres:5432/ai_grammar_tutor
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/store:/app/store
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  realtime:
+    build: ./realtime
+    container_name: agt_realtime
+    env_file: ./realtime/.env
+    environment:
+      PORT: "3001"
+      DATABASE_URL: postgresql://postgres:12345678@postgres:5432/ai_grammar_tutor
+      AI_SERVICE_URL: http://ai-chat:8000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - ai-chat
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  pgdata:

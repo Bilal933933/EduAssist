@@ -1,0 +1,56 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - button "محادثة جديدة" [ref=e6]
+      - navigation "المحادثات السابقة" [ref=e9]:
+        - paragraph [ref=e10]: لا توجد محادثات سابقة بعد.ابدأ أول سؤال نحوي!
+      - generic [ref=e11]:
+        - generic [ref=e12]: المظهر
+        - button "التبديل إلى الوضع الليلي" [ref=e13]
+    - generic [ref=e15]:
+      - banner [ref=e16]:
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - heading "البيان" [level=1] [ref=e24]
+            - generic [ref=e25]: توليدي (RAG)
+          - paragraph [ref=e29]: المساعد الذكي لقواعد النحو العربي وشواهده
+      - main [ref=e30]:
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - generic [ref=e35]: المساعد النحوي الذكي
+            - heading "كيف يمكنني مساعدتك في النحو اليوم؟" [level=2] [ref=e40]
+            - paragraph [ref=e41]: "اطرح سؤالك النحوي مباشرةً، أو اختر أحد النماذج الاسترشادية أدناه للبدء:"
+          - generic [ref=e42]:
+            - 'button "إعراب جملة تطبيق إعرابي أعرب الجملة: «إنّ مع العسرِ يسراً» بالتفصيل" [ref=e43] [cursor=pointer]':
+              - generic [ref=e48]:
+                - generic [ref=e49]:
+                  - generic [ref=e50]: إعراب جملة
+                  - generic [ref=e51]: تطبيق إعرابي
+                - paragraph [ref=e52]: "أعرب الجملة: «إنّ مع العسرِ يسراً» بالتفصيل"
+            - button "الفاعل ونائبه قواعد أساسية ما الفرق بين الفاعل ونائب الفاعل مع الأمثلة والشواهد؟" [ref=e53] [cursor=pointer]:
+              - generic [ref=e58]:
+                - generic [ref=e59]:
+                  - generic [ref=e60]: الفاعل ونائبه
+                  - generic [ref=e61]: قواعد أساسية
+                - paragraph [ref=e62]: ما الفرق بين الفاعل ونائب الفاعل مع الأمثلة والشواهد؟
+            - button "الأفعال الخمسة الأفعال ما هي الأفعال الخمسة وما علامات رفعها ونصبها وجزمها؟" [ref=e63] [cursor=pointer]:
+              - generic [ref=e68]:
+                - generic [ref=e69]:
+                  - generic [ref=e70]: الأفعال الخمسة
+                  - generic [ref=e71]: الأفعال
+                - paragraph [ref=e72]: ما هي الأفعال الخمسة وما علامات رفعها ونصبها وجزمها؟
+            - button "بناء المضارع البناء والإعراب متى يُبنى الفعل المضارع وما هي نونا التوكيد والنسوة؟" [ref=e73] [cursor=pointer]:
+              - generic [ref=e78]:
+                - generic [ref=e79]:
+                  - generic [ref=e80]: بناء المضارع
+                  - generic [ref=e81]: البناء والإعراب
+                - paragraph [ref=e82]: متى يُبنى الفعل المضارع وما هي نونا التوكيد والنسوة؟
+      - contentinfo [ref=e83]:
+        - generic [ref=e85]:
+          - 'textbox "اطرح سؤالك النحوي هنا... (مثال: ما إعراب ''إياك نعبد''؟)" [ref=e86]'
+          - generic [ref=e87]:
+            - generic [ref=e88]: مدعوم بـ Gemini 3.6 Flash & RAG
+            - generic [ref=e93]:
+              - generic [ref=e94]: Enter للإرسال
+              - button "إرسال" [disabled]
+  - region "Notifications alt+T"

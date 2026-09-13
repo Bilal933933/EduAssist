@@ -1,0 +1,51 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e10]:
+          - generic [ref=e11]:
+            - heading "البيان" [level=1] [ref=e12]
+            - generic [ref=e13]: توليدي (RAG)
+          - paragraph [ref=e17]: المساعد الذكي لقواعد النحو العربي وشواهده
+        - generic [ref=e24]:
+          - strong [ref=e25]: "53"
+          - text: مقتطف مفهرس
+    - main [ref=e28]:
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - heading "كيف يمكنني مساعدتك في النحو اليوم؟" [level=2] [ref=e33]
+          - paragraph [ref=e34]: "اسأل عن أي مسألة نحوية، استشهد بآية أو بيت شعري، أو اختر من الأسئلة الشائعة أدناه:"
+        - generic [ref=e35]:
+          - 'button "إعراب جملة تطبيق إعرابي أعرب الجملة: «إنّ مع العسرِ يسراً» بالتفصيل" [ref=e36] [cursor=pointer]':
+            - generic [ref=e41]:
+              - generic [ref=e42]:
+                - generic [ref=e43]: إعراب جملة
+                - generic [ref=e44]: تطبيق إعرابي
+              - paragraph [ref=e45]: "أعرب الجملة: «إنّ مع العسرِ يسراً» بالتفصيل"
+          - button "الفاعل ونائبه قواعد أساسية ما الفرق بين الفاعل ونائب الفاعل مع الأمثلة والشواهد؟" [ref=e46] [cursor=pointer]:
+            - generic [ref=e51]:
+              - generic [ref=e52]:
+                - generic [ref=e53]: الفاعل ونائبه
+                - generic [ref=e54]: قواعد أساسية
+              - paragraph [ref=e55]: ما الفرق بين الفاعل ونائب الفاعل مع الأمثلة والشواهد؟
+          - button "الأفعال الخمسة الأفعال ما هي الأفعال الخمسة وما علامات رفعها ونصبها وجزمها؟" [ref=e56] [cursor=pointer]:
+            - generic [ref=e61]:
+              - generic [ref=e62]:
+                - generic [ref=e63]: الأفعال الخمسة
+                - generic [ref=e64]: الأفعال
+              - paragraph [ref=e65]: ما هي الأفعال الخمسة وما علامات رفعها ونصبها وجزمها؟
+          - button "بناء المضارع البناء والإعراب متى يُبنى الفعل المضارع وما هي نونا التوكيد والنسوة؟" [ref=e66] [cursor=pointer]:
+            - generic [ref=e71]:
+              - generic [ref=e72]:
+                - generic [ref=e73]: بناء المضارع
+                - generic [ref=e74]: البناء والإعراب
+              - paragraph [ref=e75]: متى يُبنى الفعل المضارع وما هي نونا التوكيد والنسوة؟
+    - contentinfo [ref=e76]:
+      - generic [ref=e78]:
+        - 'textbox "اطرح سؤالك النحوي هنا... (مثال: ما إعراب ''إياك نعبد''؟)" [ref=e79]'
+        - generic [ref=e80]:
+          - generic [ref=e81]: مدعوم بـ Gemini 3.6 Flash & RAG
+          - generic [ref=e86]:
+            - generic [ref=e87]: Enter للإرسال
+            - button "إرسال" [disabled]
+  - region "Notifications alt+T"
