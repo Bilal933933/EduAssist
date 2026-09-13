@@ -77,15 +77,16 @@ def _resolve(question: str, context: dict):
 class ChatService:
     """Feature service — analyzer → clarify → retrieval → compose → LLM."""
 
-    async def _handle_grammar(self, question: str, thread_id, client, store):
-        """مسار التصحيح: LLM مباشر بلا RAG — نفس عقد الدروس، بلا مصادر."""
+    async def _run_grammar_correction(self, question: str, thread_id, client, store):
+        """النواة المشتركة لمسار التصحيح (عادي + بث): إيجاد/إنشاء thread ←
+        تصحيح LLM بلا RAG ← تخزين. تعيد (answer, thread_id)."""
         # TODO: تمرير التصحيحات إلى teacher_mistakes (مؤجل — خارج نطاق المرحلة 2)
         if thread_id is None:
             thread_id = store.create_thread(title=question[:50])["id"]
-        answer = correct_text(client, question)
         store.add_message(thread_id, "user", question)
+        answer = correct_text(client, question)
         store.add_message(thread_id, "assistant", answer, sources=[])
-        return build_grammar_result(answer, thread_id)
+        return answer, thread_id
 
     async def handle(
         self, question: str, thread_id: int | None, client, kb, store, teacher_id: str = "default"
@@ -132,7 +133,10 @@ class ChatService:
             store.add_message(thread_id, "assistant", answer, sources=[])
             return {"answer": answer, "hits": [], "trace": [{"tool": "direct"}], "thread_id": thread_id}
         if module is ModuleIntent.GRAMMAR_CORRECTION:
-            return await self._handle_grammar(question, thread_id, client, store)
+            answer, thread_id = await self._run_grammar_correction(
+                question, thread_id, client, store
+            )
+            return build_grammar_result(answer, thread_id)
         if thread_id is None and analysis.needs_clarification:
             return {
                 "clarification": {
@@ -212,16 +216,20 @@ class ChatService:
                 yield {"type": "done", "hits": [], "trace": [{"tool": "direct"}], "full": answer}
             return direct_gen(), thread_id
         if module is ModuleIntent.GRAMMAR_CORRECTION:
-            if is_new:
-                thread_id = store.create_thread(title=question[:50])["id"]
-            store.add_message(thread_id, "user", question)
-            answer = correct_text(client, question)
-            store.add_message(thread_id, "assistant", answer, sources=[])
+            answer, thread_id = await self._run_grammar_correction(
+                question, thread_id, client, store
+            )
+            result = build_grammar_result(answer, thread_id)
 
             async def grammar_gen():
-                yield {"type": "answer_chunk", "text": answer}
-                yield {"type": "done", "hits": [], "trace": [{"tool": "grammar_correction"}], "full": answer}
-            return grammar_gen(), thread_id
+                yield {"type": "answer_chunk", "text": result["answer"]}
+                yield {
+                    "type": "done",
+                    "hits": result["hits"],
+                    "trace": result["trace"],
+                    "full": result["answer"],
+                }
+            return grammar_gen(), result["thread_id"]
         if is_new and analysis.needs_clarification:
             async def clarify_gen():
                 import json
