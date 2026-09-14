@@ -1,18 +1,16 @@
-import hmac
-import os
-
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
-from app.routers import chat, stats, threads, reindex, cards, memory
+from app.api.router import routers
+from app.core.exceptions import register_exception_handlers
+from app.core.response import get_request_id, ok, request_id_middleware
+from app.core.security import internal_key_guard
 
 load_dotenv()
 
 app = FastAPI(title="Arabic Grammar Tutor API")
 
-# تفعيل CORS للتواصل الآمن مع واجهة Next.js
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,20 +19,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 2.2 Global Exception Filter موحد
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    import traceback, logging
-    logging.error(f"Unhandled: {request.url.path} - {exc}\n{traceback.format_exc()}")
-    # لا تكشف التفاصيل الداخلية للعميل
-    return JSONResponse(status_code=500, content={"detail": "حدث خطأ داخلي. حاول مرة أخرى.", "code": "INTERNAL_ERROR"})
-
-# مسارات عامة لا تتطلب المفتاح الداخلي (الفحص الحيوي + التوثيق فقط)
-PUBLIC_PATHS = {"/health", "/docs", "/redoc", "/openapi.json"}
+register_exception_handlers(app)
+app.middleware("http")(internal_key_guard)
+app.middleware("http")(request_id_middleware)
 
 
 @app.get("/health", tags=["health"])
-async def health():
+async def health(request: Request):
     """فحص الحيوية: تستخدمه خدمة Realtime لمراقبة هذه الخدمة."""
     kb_ready = False
     try:
@@ -42,32 +33,10 @@ async def health():
 
         get_kb()
         kb_ready = True
-    # BaseException لالتقاط SystemExit الذي يرفعه KnowledgeBase عند غياب الفهرسة
     except BaseException:
         kb_ready = False
-    return {"status": "ok", "service": "ai-chat", "kb_ready": kb_ready}
+    return ok({"status": "ok", "service": "ai-chat", "kb_ready": kb_ready}, request_id=get_request_id(request))
 
 
-@app.middleware("http")
-async def internal_key_guard(request: Request, call_next):
-    """حارس المفتاح الداخلي: يرفض أي طلب لا يأتي من بوابة Realtime الموثوقة."""
-    if request.method == "OPTIONS" or request.url.path in PUBLIC_PATHS:
-        return await call_next(request)
-
-    expected = os.getenv("INTERNAL_API_KEY", "")
-    provided = request.headers.get("X-Internal-Key", "")
-    # فشل مغلق: إن لم يُعرَّف المفتاح نهائياً تُرفض كل الطلبات
-    if not expected or not hmac.compare_digest(expected, provided):
-        return JSONResponse(
-            status_code=401,
-            content={"detail": "مفتاح داخلي مفقود أو غير صحيح."},
-        )
-    return await call_next(request)
-
-
-app.include_router(chat.router)
-app.include_router(threads.router)
-app.include_router(stats.router)
-app.include_router(reindex.router)
-app.include_router(cards.router)
-app.include_router(memory.router)
+for r in routers:
+    app.include_router(r)

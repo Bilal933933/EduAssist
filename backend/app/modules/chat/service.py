@@ -1,8 +1,7 @@
-from fastapi import HTTPException
+from app.core.errors import AppError
+from app.core.validation import ensure_thread_exists, validate_question, validate_teacher_id, validate_thread_id
 from app.dependencies import get_summary_repo
-from app.modules.lesson_knowledge.application.agent.loop import run_agentic_rag, run_agentic_rag_stream
-from app.modules.lesson_knowledge.application.agent.router import route, get_chitchat_reply
-from app.modules.lesson_knowledge.application.agent.fc_client import call_simple
+from app.agent import call_simple, get_chitchat_reply, route, run_agentic_rag, run_agentic_rag_stream
 from src.query_analyzer.analyzer import analyze
 from app.modules.tutor_orchestrator.application.route_message_use_case import (
     resolve_module,
@@ -124,8 +123,11 @@ class ChatService:
     async def handle(
         self, question: str, thread_id: int | None, client, kb, store, teacher_id: str = "default"
     ):
-        if thread_id is not None and not store.thread_exists(thread_id):
-            raise HTTPException(status_code=404, detail="المحادثة غير موجودة.")
+        question = validate_question(question)
+        teacher_id = validate_teacher_id(teacher_id)
+        thread_id = validate_thread_id(thread_id)
+        if thread_id is not None:
+            ensure_thread_exists(store, thread_id)
         context = {}
         if thread_id is not None:
             hist = store.recent_history(thread_id)
@@ -213,8 +215,11 @@ class ChatService:
     async def stream(
         self, question: str, thread_id: int | None, client, kb, store, teacher_id: str = "default"
     ):
-        if thread_id is not None and not store.thread_exists(thread_id):
-            raise HTTPException(status_code=404, detail="المحادثة غير موجودة.")
+        question = validate_question(question)
+        teacher_id = validate_teacher_id(teacher_id)
+        thread_id = validate_thread_id(thread_id)
+        if thread_id is not None:
+            ensure_thread_exists(store, thread_id)
         is_new = thread_id is None
         history = store.recent_history(thread_id) if thread_id is not None else []
         context = {}

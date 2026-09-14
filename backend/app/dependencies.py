@@ -1,7 +1,7 @@
 import os
 from functools import lru_cache
 
-from fastapi import HTTPException
+from app.core.errors import AppError
 from google import genai
 
 from src.storage.chat_store import ChatStore
@@ -18,10 +18,7 @@ def get_kb() -> KnowledgeBase:
     try:
         return KnowledgeBase()
     except SystemExit:
-        raise HTTPException(
-            status_code=500,
-            detail="قاعدة البيانات المتجهية غير مفهرسة. يرجى تشغيل indexer.py أولاً.",
-        )
+        raise AppError("KB_NOT_INDEXED")
 
 
 @lru_cache(maxsize=1)
@@ -47,5 +44,5 @@ def get_gemini_client() -> genai.Client:
     """عميل Gemini مشترك — يُنشأ مرة واحدة بدل إنشائه داخل كل طلب."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY غير مجهزة في .env")
+        raise AppError("GEMINI_KEY_MISSING")
     return genai.Client(api_key=api_key)

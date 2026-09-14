@@ -1,28 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from google import genai
-from app.dependencies import get_gemini_client, get_kb
-from app.modules.lesson_knowledge.application.agent.cards import generate_flashcards, generate_quiz
-from app.modules.lesson_knowledge.application.agent.chat import embed_question
+"""توافقية رجعية: التنفيذ انتقل إلى app.api.v1.cards."""
+from app.api.v1.cards import CardsRequest, flashcards, quiz, router
 
-router = APIRouter(prefix="/api", tags=["cards"])
-
-class CardsRequest(BaseModel):
-    topic: str
-    question: str = ""
-
-@router.post("/flashcards")
-async def flashcards(req: CardsRequest, client: genai.Client = Depends(get_gemini_client), kb=Depends(get_kb)):
-    try:
-        hits = kb.hybrid_search(req.topic, None, top_k=5, embed_fn=lambda: embed_question(client, req.topic))
-        cards = generate_flashcards(client, hits, req.topic)
-        return {"cards": cards, "topic": req.topic}
-    except Exception as e: raise HTTPException(500, str(e))
-
-@router.post("/quiz")
-async def quiz(req: CardsRequest, client: genai.Client = Depends(get_gemini_client), kb=Depends(get_kb)):
-    try:
-        hits = kb.hybrid_search(req.topic, None, top_k=5, embed_fn=lambda: embed_question(client, req.topic))
-        quiz = generate_quiz(client, hits, req.topic)
-        return {"quiz": quiz, "topic": req.topic}
-    except Exception as e: raise HTTPException(500, str(e))
+__all__ = ["router", "CardsRequest", "flashcards", "quiz"]

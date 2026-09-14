@@ -8,7 +8,10 @@ if hasattr(sys.stdout, "reconfigure"):
 from dotenv import load_dotenv
 from src.knowledge.vector_service import VectorService
 from src.knowledge.hybrid import rrf_fuse
-from app.modules.lesson_knowledge.application.agent.clarifier import extract_scope
+try:
+    from app.agent import extract_scope
+except ImportError:  # توافقية أثناء الترحيل
+    from app.modules.lesson_knowledge.application.agent.clarifier import extract_scope
 
 load_dotenv()
 
