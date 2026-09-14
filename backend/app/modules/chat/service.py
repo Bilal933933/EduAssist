@@ -1,5 +1,7 @@
 from app.core.errors import AppError
+from app.core.logging import get_logger
 from app.core.validation import ensure_thread_exists, validate_teacher_id, validate_thread_id
+from app.knowledge.retrieval_log import log_retrieval
 from app.modules.chat.validation import validate_question
 from app.dependencies import get_summary_repo
 from app.agent import call_simple, get_chitchat_reply, route, run_agentic_rag, run_agentic_rag_stream
@@ -67,7 +69,7 @@ def _update_teacher_memory(analysis, question: str, teacher_id: str = "default")
             is_lesson_prep=is_lesson,
         )
     except Exception as e:
-        print(f"[TeacherMemory update skip: {e}]")
+        get_logger("app").debug(f"TeacherMemory update skip: {e}")
 
 
 def _resolve(question: str, context: dict):
@@ -191,6 +193,8 @@ class ChatService:
         if thread_id is None:
             thread_id = store.create_thread(title=question[:50])["id"]
         history = store.recent_history(thread_id)
+        import time as _t
+        _start = _t.perf_counter()
         answer, hits, trace = run_agentic_rag(
             client,
             kb,
@@ -201,6 +205,14 @@ class ChatService:
             teacher_id=teacher_id,
             light=(mode == "light"),
         )
+        try:
+            _scope = getattr(getattr(analysis, "scope", None), "__dict__", None) or {}
+            if not isinstance(_scope, dict):
+                _scope = {"scope": str(getattr(analysis, "scope", ""))[:80]}
+            _mode = (hits[0].get("retrieval_mode", "") if hits else ("light" if mode == "light" else "deep"))
+            log_retrieval(question, hits, scope=_scope, mode=_mode, latency_ms=(_t.perf_counter() - _start) * 1000, route="chat", thread_id=thread_id)
+        except Exception:
+            pass
         if isinstance(answer, str) and answer.startswith("CLARIFY:"):
             return {
                 "clarification": {"question": answer.replace("CLARIFY:", "").strip()},
@@ -304,11 +316,26 @@ class ChatService:
         store.add_message(thread_id, "user", question)
         _update_teacher_memory(analysis, question, teacher_id=teacher_id)
         # المحفوظة=False: رسالة المساعد تُبنى من البث، فيحفظها الراوتر بعد اكتماله.
-        return (
-            run_agentic_rag_stream(
-                client, kb, question, history, analysis=analysis, teacher_id=teacher_id,
-                light=(mode == "light"),
-            ),
-            thread_id,
-            False,
+        import time as _t2
+        _start2 = _t2.perf_counter()
+        _base_gen = run_agentic_rag_stream(
+            client, kb, question, history, analysis=analysis, teacher_id=teacher_id,
+            light=(mode == "light"),
         )
+
+        async def _logging_gen():
+            _hits: list = []
+            async for event in _base_gen:
+                if isinstance(event, dict) and event.get("type") == "done":
+                    _hits = event.get("hits", []) or []
+                yield event
+            try:
+                _scope2 = getattr(getattr(analysis, "scope", None), "__dict__", None) or {}
+                if not isinstance(_scope2, dict):
+                    _scope2 = {"scope": str(getattr(analysis, "scope", ""))[:80]}
+                _mode2 = (_hits[0].get("retrieval_mode", "") if _hits else ("light" if mode == "light" else "deep"))
+                log_retrieval(question, _hits, scope=_scope2, mode=_mode2, latency_ms=(_t2.perf_counter() - _start2) * 1000, route="chat_stream", thread_id=thread_id)
+            except Exception:
+                pass
+
+        return (_logging_gen(), thread_id, False)

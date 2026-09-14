@@ -1,4 +1,4 @@
-import logging
+import json
 import traceback
 
 from fastapi import Request
@@ -7,13 +7,17 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.errors import AppError, message_for
+from app.core.logging import get_logger
+from app.core.request_context import set_request_id
 from app.core.response import fail, get_request_id
 
 
 async def app_error_handler(request: Request, exc: AppError):
     status, message = message_for(exc.code)
-    logging.warning(f"AppError {exc.code} at {request.url.path} rid={get_request_id(request)}")
-    return fail(exc.code, message, request_id=get_request_id(request), status=status)
+    rid = get_request_id(request)
+    set_request_id(rid)
+    get_logger("errors").warning(json.dumps({"type": "app_error", "code": exc.code, "path": request.url.path}, ensure_ascii=False))
+    return fail(exc.code, message, request_id=rid, status=status)
 
 
 async def http_error_handler(request: Request, exc: StarletteHTTPException):
@@ -33,9 +37,11 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 
 
 async def global_exception_handler(request: Request, exc: Exception):
-    logging.error(f"Unhandled: {request.url.path} - {exc}\n{traceback.format_exc()} rid={get_request_id(request)}")
+    rid = get_request_id(request)
+    set_request_id(rid)
+    get_logger("errors").error(json.dumps({"type": "unhandled", "path": request.url.path, "error": str(exc)[:200]}, ensure_ascii=False))
     status, message = message_for("INTERNAL_ERROR")
-    return fail("INTERNAL_ERROR", message, request_id=get_request_id(request), status=status)
+    return fail("INTERNAL_ERROR", message, request_id=rid, status=status)
 
 
 def register_exception_handlers(app):

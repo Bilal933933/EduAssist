@@ -1,0 +1,12 @@
+"""سياق الطلب — requestId واحد يعبر كل السطور عبر ContextVar."""
+from contextvars import ContextVar
+
+_request_id: ContextVar[str | None] = ContextVar("request_id", default=None)
+
+
+def set_request_id(rid: str | None) -> None:
+    _request_id.set(rid)
+
+
+def get_request_id_ctx() -> str | None:
+    return _request_id.get()

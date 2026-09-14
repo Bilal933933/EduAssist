@@ -10,5 +10,6 @@
 """
 from src.knowledge_base import KnowledgeBase
 from src.retrieval.retrieval_service import RetrievalService
+from app.knowledge.retrieval_log import log_retrieval, summarize_hits
 
-__all__ = ["KnowledgeBase", "RetrievalService"]
+__all__ = ["KnowledgeBase", "RetrievalService", "log_retrieval", "summarize_hits"]

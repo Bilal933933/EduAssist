@@ -1,3 +1,4 @@
 store/
+logs/
 __pycache__/
 .env
