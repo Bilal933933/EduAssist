@@ -242,3 +242,36 @@
   direction: rtl;
   text-align: right;
 }
+
+/* Chat scroll: single contained scroll + clearance above the composer */
+main {
+  overscroll-behavior: contain;
+  scroll-padding-bottom: 6rem;
+}
+
+/* Print: نطبع المحادثة فقط بدون هيكل التطبيق */
+@media print {
+  header,
+  footer,
+  aside,
+  nav,
+  [role="toolbar"] {
+    display: none !important;
+  }
+
+  .h-dvh,
+  .min-h-dvh {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .overflow-hidden,
+  .overflow-y-auto {
+    overflow: visible !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}

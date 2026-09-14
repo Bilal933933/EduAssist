@@ -1,12 +1,14 @@
 "use client";
 
+import { Flashcard, QuizQuestion } from "@/lib/types";
+
 // وظيفة واحدة: عرض نتائج الإضافات (بطاقات/اختبار) — بدون جلب.
 export function LessonExtrasView({
   cards,
   quiz,
 }: {
-  cards: any[] | null;
-  quiz: any[] | null;
+  cards: Flashcard[] | null;
+  quiz: QuizQuestion[] | null;
 }) {
   if (!cards && !quiz) return null;
 

@@ -175,6 +175,30 @@ class VectorStore:
         finally:
             session.close()
 
+    def counts_by_subject(self) -> list:
+        """توزيع القطع على (مادة، مرحلة) — للعرض في واجهة المواد."""
+        session = self.Session()
+        try:
+            rows = (
+                session.query(
+                    KnowledgeChunk.subject,
+                    KnowledgeChunk.stage,
+                    func.count(KnowledgeChunk.id),
+                )
+                .group_by(KnowledgeChunk.subject, KnowledgeChunk.stage)
+                .all()
+            )
+            return [
+                {
+                    "subject": subject or "غير مصنّف",
+                    "stage": stage,
+                    "chunks": int(count),
+                }
+                for subject, stage, count in rows
+            ]
+        finally:
+            session.close()
+
     def existing_doc_keys(self) -> set:
         session = self.Session()
         try:

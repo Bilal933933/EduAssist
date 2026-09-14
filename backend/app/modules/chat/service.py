@@ -44,9 +44,10 @@ def _update_teacher_memory(analysis, question: str, teacher_id: str = "default")
         if analysis is not None:
             scope = getattr(analysis, "scope", None)
             if scope is not None:
-                grade = getattr(getattr(scope, "grade", None), "value", None) or getattr(
-                    scope, "grade", None
-                )
+                grade = getattr(scope, "grade", None)
+                if not isinstance(grade, str):
+                    value = getattr(grade, "value", None)
+                    grade = value if isinstance(value, str) else None
                 topic = getattr(scope, "topic", None)
             if not topic and getattr(analysis, "topics", None):
                 topic = analysis.topics[0] if analysis.topics else None
@@ -257,7 +258,8 @@ class ChatService:
                     "trace": result["trace"],
                     "full": result["answer"],
                 }
-            return conversation_gen(), result["thread_id"]
+            # المحفوظة=True: المسار المخزَّن تكفّل بحفظ رسالة المساعد، فلا يعيد الراوتر حفظها.
+            return conversation_gen(), result["thread_id"], True
         if mode == "direct":
             if is_new:
                 thread_id = store.create_thread(title=question[:50])["id"]
@@ -268,7 +270,8 @@ class ChatService:
             async def direct_gen():
                 yield {"type": "answer_chunk", "text": answer}
                 yield {"type": "done", "hits": [], "trace": [{"tool": "direct"}], "full": answer}
-            return direct_gen(), thread_id
+            # المحفوظة=True: answer حُفظت أعلاه، فلا يكررها الراوتر.
+            return direct_gen(), thread_id, True
         if module is ModuleIntent.GRAMMAR_CORRECTION:
             answer, thread_id = await self._run_grammar_correction(
                 question, thread_id, client, store
@@ -283,20 +286,23 @@ class ChatService:
                     "trace": result["trace"],
                     "full": result["answer"],
                 }
-            return grammar_gen(), result["thread_id"]
+            # المحفوظة=True: التصحيح حُفظ داخل _run_grammar_correction.
+            return grammar_gen(), result["thread_id"], True
         if is_new and analysis.needs_clarification:
             async def clarify_gen():
                 import json
                 yield f"data: {json.dumps({'type': 'clarification', 'question': analysis.clarification_question, 'options': []}, ensure_ascii=False)}\n\n"
-            return clarify_gen(), None
+            return clarify_gen(), None, False
         if is_new:
             thread_id = store.create_thread(title=question[:50])["id"]
         store.add_message(thread_id, "user", question)
         _update_teacher_memory(analysis, question, teacher_id=teacher_id)
+        # المحفوظة=False: رسالة المساعد تُبنى من البث، فيحفظها الراوتر بعد اكتماله.
         return (
             run_agentic_rag_stream(
                 client, kb, question, history, analysis=analysis, teacher_id=teacher_id,
                 light=(mode == "light"),
             ),
             thread_id,
+            False,
         )

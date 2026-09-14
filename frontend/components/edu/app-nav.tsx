@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Sparkles, BarChart3, MessageCircle, User } from "lucide-react";
+import { LayoutDashboard, BookOpen, Sparkles, BarChart3, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { clearToken } from "@/lib/auth";
+import { useStoredUser } from "@/lib/queries";
 
 const NAV = [
   { href: "/dashboard", label: "الرئيسية", icon: LayoutDashboard },
@@ -13,6 +15,14 @@ const NAV = [
 
 export function AppNav({ mobile = false }: { mobile?: boolean }) {
   const pathname = usePathname();
+  const user = useStoredUser();
+  const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "مدرس";
+
+  const handleLogout = () => {
+    clearToken();
+    window.location.href = "/";
+  };
+
   if (mobile) {
     return (
       <nav className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border flex justify-around py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:hidden">
@@ -29,7 +39,7 @@ export function AppNav({ mobile = false }: { mobile?: boolean }) {
                 item.primary && active && "bg-primary text-primary-foreground px-4"
               )}
             >
-              <Icon className={cn("size-5", item.primary && active && "size-5")} />
+              <Icon className="size-5" />
               <span className="text-[11px]">{item.label}</span>
             </Link>
           );
@@ -43,7 +53,7 @@ export function AppNav({ mobile = false }: { mobile?: boolean }) {
         <div className="size-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">م</div>
         <div>
           <p className="font-bold text-sm leading-none">EduAssist</p>
-          <p className="text-[11px] text-muted-foreground">مساعدي الذكي</p>
+          <p className="text-[11px] text-muted-foreground">مساعد المدرس</p>
         </div>
       </div>
       <nav className="flex-1 p-3 space-y-1">
@@ -68,11 +78,20 @@ export function AppNav({ mobile = false }: { mobile?: boolean }) {
       </nav>
       <div className="p-3 border-t border-border">
         <div className="flex items-center gap-3 px-2 py-2">
-          <div className="size-8 rounded-full bg-secondary flex items-center justify-center"><User className="size-4" /></div>
+          <div className="size-8 rounded-full bg-secondary flex items-center justify-center shrink-0"><User className="size-4" /></div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">أحمد</p>
-            <p className="text-xs text-muted-foreground">الصف الثالث الإعدادي</p>
+            <p className="text-sm font-medium truncate">{displayName}</p>
+            {user?.email && <p dir="ltr" className="text-[11px] text-muted-foreground truncate text-right">{user.email}</p>}
           </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            aria-label="تسجيل الخروج"
+            title="تسجيل الخروج"
+            className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-secondary transition-colors"
+          >
+            <LogOut className="size-4" />
+          </button>
         </div>
       </div>
     </aside>

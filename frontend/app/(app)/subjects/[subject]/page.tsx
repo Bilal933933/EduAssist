@@ -1,49 +1,88 @@
+"use client";
+
 import Link from "next/link";
-import { Clock, CheckCircle2, Play } from "lucide-react";
+import { notFound, useParams } from "next/navigation";
+import { ArrowLeft, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { useStats } from "@/lib/queries";
+import { subjectIcon, UNCLASSIFIED } from "@/lib/subjects";
+import { formatCount } from "@/lib/utils";
 
-const DATA: Record<string, { name: string; grade: string; units: { title: string; lessons: { title: string; status: string; time: string }[] }[] }> = {
-  arabic: {
-    name: "اللغة العربية",
-    grade: "الصف الثالث الإعدادي",
-    units: [
-      { title: "01 — النحو", lessons: [{ title: "المبتدأ والخبر", status: "done", time: "12 دقيقة" }, { title: "كان وأخواتها", status: "done", time: "14 دقيقة" }, { title: "إن وأخواتها", status: "current", time: "12 دقيقة" }, { title: "الحال", status: "todo", time: "10 دقائق" }] },
-      { title: "02 — القراءة", lessons: [{ title: "قصة أثر", status: "todo", time: "15 دقيقة" }] },
-    ],
-  },
-};
+export default function SubjectDetailPage() {
+  const params = useParams<{ subject: string }>();
+  const subject = decodeURIComponent(params?.subject ?? "");
+  const { data: stats, isPending, isError } = useStats();
 
-export default async function SubjectDetail({ params }: { params: Promise<{ subject: string }> }) {
-  const { subject } = await params;
-  const data = DATA[subject] || DATA.arabic;
+  if (isPending) {
+    return (
+      <div className="container py-16 flex justify-center">
+        <Spinner className="size-6" />
+      </div>
+    );
+  }
+  if (isError) {
+    return (
+      <div className="container py-16 text-center text-sm text-muted-foreground">
+        تعذر جلب بيانات المادة — حاول تحديث الصفحة.
+      </div>
+    );
+  }
+
+  const rows = (stats?.by_subject ?? []).filter((r) => (r.subject || UNCLASSIFIED) === subject);
+  if (rows.length === 0) notFound();
+
+  const Icon = subjectIcon(subject);
+  const totalChunks = rows.reduce((sum, r) => sum + r.chunks, 0);
+  const stages = [...rows].sort((a, b) => b.chunks - a.chunks);
+
   return (
     <div className="container py-6 space-y-6">
       <div>
-        <h1 className="text-xl font-extrabold">{data.name}</h1>
-        <p className="text-sm text-muted-foreground">{data.grade}</p>
-      </div>
-      {data.units.map((u) => (
-        <div key={u.title} className="space-y-3">
-          <h2 className="font-bold text-sm bg-secondary px-3 py-1.5 rounded-full w-fit">{u.title}</h2>
-          <div className="grid gap-3">
-            {u.lessons.map((l) => (
-              <div key={l.title} className="border border-border rounded-2xl p-4 bg-card flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-sm flex items-center gap-2">
-                    {l.status === "done" && <CheckCircle2 className="size-4 text-emerald-600" />}
-                    {l.status === "current" && <Play className="size-4 text-primary" />}
-                    {l.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><Clock className="size-3" />{l.time} • {l.status === "done" ? "مكتمل" : l.status === "current" ? "قيد التقدم" : "لم يبدأ"}</p>
-                </div>
-                <Button asChild size="sm" variant={l.status === "current" ? "default" : "outline"} className="rounded-full">
-                  <Link href={l.status === "todo" ? "#" : "/assistant"}>{l.status === "done" ? "مراجعة" : l.status === "current" ? "متابعة" : "ابدأ"}</Link>
-                </Button>
-              </div>
-            ))}
+        <div className="flex items-center gap-3">
+          <div className="size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <Icon className="size-6" />
+          </div>
+          <div>
+            <h1 className="text-xl font-extrabold">{subject}</h1>
+            <p className="text-sm text-muted-foreground">
+              {formatCount(totalChunks)} مقتطف مفهرس • {formatCount(stages.length)}{" "}
+              {stages.length > 2 ? "مراحل" : "مرحلة"}
+            </p>
           </div>
         </div>
-      ))}
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="font-bold text-sm bg-secondary px-3 py-1.5 rounded-full w-fit">المراحل</h2>
+        <div className="grid gap-3">
+          {stages.map((st) => (
+            <div
+              key={st.stage ?? "none"}
+              className="border border-border rounded-2xl p-4 bg-card flex items-center justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <p className="font-bold text-sm flex items-center gap-2">
+                  <Layers className="size-4 text-primary" />
+                  {st.stage || "بدون مرحلة محددة"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formatCount(st.chunks)} مقتطف من مصادر هذه المرحلة
+                </p>
+              </div>
+              <Button asChild size="sm" variant="outline" className="rounded-full shrink-0">
+                <Link href="/assistant">
+                  حضّر منه <ArrowLeft className="size-4 mr-1.5" />
+                </Link>
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        هذه القائمة مبنية على المصادر التي فهرستها بنفسك — لتحضير درس من هذه المادة افتح المساعد واسأل مباشرة.
+      </p>
     </div>
   );
 }

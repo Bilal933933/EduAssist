@@ -58,7 +58,7 @@ function SidebarContent({
           <p className="text-xs text-muted-foreground text-center py-6 px-2 leading-relaxed">
             لا توجد محادثات سابقة بعد.
             <br />
-            ابدأ أول سؤال نحوي!
+            ابدأ أول سؤال لمساعدك!
           </p>
         ) : (
           threads.map((t) => {
@@ -101,7 +101,7 @@ function SidebarContent({
                     e.stopPropagation();
                     onDeleteThread(t.id);
                   }}
-                  className="size-8 shrink-0 ml-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-opacity"
+                  className="size-8 shrink-0 ml-1 opacity-60 lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-opacity"
                 >
                   <Trash2 className="size-3.5" />
                 </Button>

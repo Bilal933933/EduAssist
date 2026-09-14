@@ -1,3 +1,5 @@
+# DEPRECATED — مسار قديم: استخدم app/modules/knowledge_ingestion/infrastructure/cli.py
+# (يبقى للمرجع فقط حتى إتمام إعادة الفهرسة الكاملة، ثم يُحذف.)
 import os
 import sys
 import time

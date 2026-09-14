@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="EduAssist">
+  <rect width="512" height="512" rx="112" fill="#0f766e" />
+  <circle cx="256" cy="256" r="168" fill="none" stroke="#ffffff" stroke-opacity="0.25" stroke-width="16" />
+  <text x="256" y="342" text-anchor="middle" font-family="'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif" font-size="248" font-weight="700" fill="#ffffff">م</text>
+</svg>

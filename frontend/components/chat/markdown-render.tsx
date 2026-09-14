@@ -20,14 +20,13 @@ export function MarkdownRender({ content }: { content: string }) {
             <h4 className="text-sm font-bold mt-4 mb-1.5 text-foreground">{children}</h4>
           ),
           p: ({ children }) => <p className="my-2 leading-7">{children}</p>,
-          ul: ({ children }) => <ul className="my-3 space-y-2 pr-1">{children}</ul>,
-          ol: ({ children }) => <ol className="my-3 space-y-2 pr-1 list-none">{children}</ol>,
-          li: ({ children }) => (
-            <li className="flex items-start gap-2.5">
-              <span className="size-1.5 rounded-full bg-foreground/40 mt-3 shrink-0" />
-              <span className="flex-1">{children}</span>
-            </li>
+          ul: ({ children }) => (
+            <ul className="my-3 space-y-2 pr-5 list-disc marker:text-foreground/40">{children}</ul>
           ),
+          ol: ({ children }) => (
+            <ol className="my-3 space-y-2 pr-5 list-decimal marker:text-foreground/60 marker:font-semibold">{children}</ol>
+          ),
+          li: ({ children }) => <li className="leading-7 pl-1">{children}</li>,
           blockquote: ({ children }) => (
             <blockquote className="border-r-2 border-foreground/20 pr-4 my-3 text-foreground/80">
               {children}

@@ -1,4 +1,4 @@
-import { ChatResponse, ChatThread, StatsResponse, StoredMessage } from "@/lib/types";
+import { ChatResponse, ChatThread, MemoryResponse, StatsResponse, StoredMessage } from "@/lib/types";
 import { authHeader } from "@/lib/auth";
 import { API_BASE_URL } from "@/lib/config";
 
@@ -43,6 +43,17 @@ export async function fetchStats(): Promise<StatsResponse> {
     throw new Error(`Failed to fetch stats: ${response.statusText}`);
   }
 
+  return response.json();
+}
+
+export async function fetchMemory(grade?: string): Promise<MemoryResponse> {
+  const qs = grade ? `?grade=${encodeURIComponent(grade)}` : "";
+  const response = await fetch(`${API_BASE_URL}/api/memory${qs}`, {
+    headers: authHeader(),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch memory: ${response.statusText}`);
+  }
   return response.json();
 }
 

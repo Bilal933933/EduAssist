@@ -1,22 +1,25 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChatHeader } from "./chat-header";
 import { ChatSidebar } from "./chat-sidebar";
 import { MessageItem } from "./message-item";
 import { ThinkingIndicator } from "./thinking-indicator";
 import { QuickPrompts } from "./quick-prompts";
 import { ChatInput } from "./chat-input";
-import { AuthPanel } from "@/components/auth/auth-panel";
-import { Spinner } from "@/components/ui/spinner";
+import { AuthGate } from "@/components/auth/auth-gate";
 import { ClarificationChips } from "./clarification-chips";
-import { ChatMessage, ChatThread, StatsResponse, StoredMessage } from "@/lib/types";
-import { deleteThread, fetchStats, fetchThreadMessages, fetchThreads } from "@/lib/api";
-import { getAuthToken } from "@/lib/auth";
+import { ChatMessage, KnowledgeHit, StatsResponse } from "@/lib/types";
+import {
+  deleteThread,
+  fetchThreadMessages,
+  streamChat,
+} from "@/lib/api";
+import { useStats, useThreads, queryKeys } from "@/lib/queries";
 import { useChatSocket } from "@/hooks/useChatSocket";
-import { useChatStream } from "@/hooks/useChatStream";
 import { toast } from "sonner";
-import { PanelRightOpen } from "lucide-react";
+import { ArrowDown, PanelRightOpen } from "lucide-react";
 import { toArabicStepLabel } from "@/lib/agent-labels";
 
 interface ChatContainerProps {
@@ -24,29 +27,38 @@ interface ChatContainerProps {
 }
 
 export function ChatContainer({ initialStats }: ChatContainerProps) {
+  return (
+    <AuthGate>
+      <ChatWorkspace initialStats={initialStats} />
+    </AuthGate>
+  );
+}
+
+function ChatWorkspace({ initialStats }: ChatContainerProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [stats, setStats] = useState<StatsResponse | null>(initialStats);
-  const [threads, setThreads] = useState<ChatThread[]>([]);
   const [currentThreadId, setCurrentThreadId] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [desktopSidebar, setDesktopSidebar] = useState(true);
-  const mainRef = useRef<HTMLElement>(null);
-  const stickBottomRef = useRef(true);
-  const [authState, setAuthState] = useState<"checking" | "guest" | "authed">("checking");
   const [clarify, setClarify] = useState<{ question: string; options: string[] } | null>(null);
   const [lastFailed, setLastFailed] = useState<string | null>(null);
-  const { status: streamStatus, setStatus: setStreamStatus } = useChatStream();
+  const [streamStatus, setStreamStatus] = useState<string | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const stickBottomRef = useRef(true);
+  const [showJump, setShowJump] = useState(false);
   const scrollBottomRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    setAuthState(getAuthToken() ? "authed" : "guest");
-  }, []);
+  const { data: stats } = useStats(initialStats);
+  const { data: threads = [] } = useThreads(true);
+  const refreshThreads = () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.threads });
 
   const { send: sendSocket } = useChatSocket(
-    authState === "authed",
+    true,
     (data) => {
       setIsLoading(false);
+      setStreamStatus(null);
       setMessages((prev) => [...prev, { id: `assistant-${Date.now()}`, content: data.answer, role: "assistant", createdAt: new Date(), hits: data.hits || [] }]);
       if (data.thread_id != null) setCurrentThreadId(data.thread_id);
       refreshThreads();
@@ -63,7 +75,17 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
     const container = mainRef.current;
     if (!container) return;
     const { scrollTop, scrollHeight, clientHeight } = container;
-    stickBottomRef.current = scrollHeight - scrollTop - clientHeight < 120;
+    const stuck = scrollHeight - scrollTop - clientHeight < 120;
+    stickBottomRef.current = stuck;
+    setShowJump(!stuck);
+  };
+
+  const scrollToBottom = () => {
+    const container = mainRef.current;
+    if (!container) return;
+    stickBottomRef.current = true;
+    setShowJump(false);
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   };
 
   // تمرير للأسفل فقط إذا كان المستخدم ملتصقاً به أصلاً (يمنع القفز)
@@ -76,39 +98,10 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
     });
   }, [messages]);
 
-  // Fetch updated stats if not available
-  useEffect(() => {
-    if (!stats) {
-      fetchStats()
-        .then(setStats)
-        .catch((err) => console.error("Could not load stats:", err));
-    }
-  }, [stats]);
-
-  const refreshThreads = () => {
-    if (!getAuthToken()) return;
-    fetchThreads()
-      .then(setThreads)
-      .catch((err) => console.error("Could not load threads:", err));
-  };
-
-  // Load previous conversations list only after auth is confirmed
-  useEffect(() => {
-    if (authState === "authed") refreshThreads();
-  }, [authState]);
-
-  // تحويل رسالة محفوظة من قاعدة البيانات إلى رسالة واجهة
-  const mapStoredMessage = (m: StoredMessage): ChatMessage => ({
-    id: `db-${m.id}`,
-    content: m.content,
-    role: m.role,
-    createdAt: m.created_at ? new Date(m.created_at) : new Date(),
-    hits: m.sources ?? undefined,
-  });
-
   const handleSendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
     setLastFailed(null);
+    setClarify(null);
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -121,10 +114,10 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
     setIsLoading(true);
     setStreamStatus("يفكك السؤال...");
 
+    const assistantId = `assistant-${Date.now()}`;
     try {
-      const assistantId = `assistant-${Date.now()}`;
       let fullText = "";
-      let finalHits: any[] = [];
+      let finalHits: KnowledgeHit[] = [];
       let finalThreadId: number | null = null;
       const startedAt = Date.now();
       const traceSteps: { label: string }[] = [];
@@ -135,7 +128,7 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
         traceSteps.push({ label });
       };
       setMessages((prev) => [...prev, { id: assistantId, content: "", role: "assistant", createdAt: new Date(), hits: [], trace: [], streaming: true }]);
-      for await (const event of (await import("@/lib/api")).streamChat(text.trim(), currentThreadId, (msg) => setStreamStatus(msg)) as any) {
+      for await (const event of streamChat(text.trim(), currentThreadId, (msg) => setStreamStatus(msg))) {
         if (event.type === "status") {
           setStreamStatus(event.message);
           pushStep(event.message);
@@ -151,6 +144,10 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
         } else if (event.type === "answer_chunk") {
           fullText += event.text;
           setStreamStatus(null);
+          setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: fullText } : m)));
+        } else if (event.type === "answer_correct") {
+          // المصحِّح البعدي قد يعيد صياغة الإجابة بعد اكتمال البث.
+          fullText = event.text;
           setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: fullText } : m)));
         } else if (event.type === "done") {
           finalHits = event.hits || [];
@@ -171,7 +168,8 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
       return;
     } catch (e: any) {
       console.warn("SSE failed, fallback to socket", e);
-      setMessages((prev) => prev.filter((m) => m.content !== ""));
+      setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+      setStreamStatus(null);
       const msg = e?.message || "حدث خطأ أثناء معالجة سؤالك.";
       setLastFailed(text.trim());
       toast.error(msg + " اضغط Retry.");
@@ -190,8 +188,22 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
     if (isLoading || id === currentThreadId) return;
     try {
       const stored = await fetchThreadMessages(id);
-      setMessages(stored.map(mapStoredMessage));
+      setMessages(
+        stored.map((m) => ({
+          id: `db-${m.id}`,
+          content: m.content,
+          role: m.role,
+          createdAt: m.created_at ? new Date(m.created_at) : new Date(),
+          hits: m.sources ?? undefined,
+        }))
+      );
       setCurrentThreadId(id);
+      setClarify(null);
+      stickBottomRef.current = true;
+      setShowJump(false);
+      requestAnimationFrame(() => {
+        mainRef.current?.scrollTo({ top: mainRef.current.scrollHeight });
+      });
     } catch (error) {
       console.error("Load thread error:", error);
       toast.error("تعذر تحميل المحادثة المختارة.");
@@ -202,12 +214,16 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
   const handleNewChat = () => {
     setMessages([]);
     setCurrentThreadId(null);
+    setClarify(null);
+    stickBottomRef.current = true;
+    setShowJump(false);
     toast.info("تم بدء محادثة جديدة");
   };
 
   // حذف أي محادثة من الخادم (من القائمة الجانبية)
   const handleDeleteThread = async (id: number) => {
     if (isLoading) return;
+    if (!window.confirm("حذف هذه المحادثة نهائياً؟")) return;
     try {
       await deleteThread(id);
       toast.success("تم حذف المحادثة");
@@ -221,18 +237,6 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
       toast.error("تعذر حذف المحادثة.");
     }
   };
-
-  // بوابة المصادقة: زائر بدون جلسة ← شاشة الدخول بدل الواجهة
-  if (authState !== "authed") {
-    if (authState === "checking") {
-      return (
-        <div className="min-h-dvh flex items-center justify-center bg-background">
-          <Spinner className="size-8" />
-        </div>
-      );
-    }
-    return <AuthPanel onSuccess={() => setAuthState("authed")} />;
-  }
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
@@ -250,9 +254,9 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
       />
 
       {/* Main column */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         <ChatHeader
-          stats={stats}
+          stats={stats ?? null}
           onOpenMenu={() => {
             if (window.innerWidth < 1024) setSidebarOpen(true);
             else setDesktopSidebar((v) => !v);
@@ -274,7 +278,7 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
           </button>
         )}
 
-        <main ref={mainRef} onScroll={handleMainScroll} className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6">
+        <main ref={mainRef} onScroll={handleMainScroll} className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-6 py-4 sm:py-6 [scrollbar-gutter:stable]">
           <div className="max-w-2xl mx-auto">
             {messages.length === 0 ? (
               <div className="my-auto py-8">
@@ -284,7 +288,7 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
                 />
               </div>
             ) : (
-              <div className="space-y-3 py-4">
+              <div className="space-y-3 pt-4 pb-20">
                 {messages.map((msg) => (
                   <MessageItem key={msg.id} message={msg} />
                 ))}
@@ -300,6 +304,18 @@ export function ChatContainer({ initialStats }: ChatContainerProps) {
             )}
           </div>
         </main>
+
+        {showJump && messages.length > 0 && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            aria-label="العودة لآخر الرد"
+            className="absolute bottom-32 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold shadow-md hover:bg-muted"
+          >
+            <ArrowDown className="size-3.5" />
+            آخر الرد
+          </button>
+        )}
 
         {/* Input — inside the flex flow, no overlap */}
         <footer className="border-t border-border/60 bg-background shrink-0 pb-[env(safe-area-inset-bottom)]">

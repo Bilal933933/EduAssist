@@ -22,16 +22,23 @@ interface AssistantMessageProps {
 export function AssistantMessage({ message, formattedTime }: AssistantMessageProps) {
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [edited, setEdited] = useState<string | null>(null);
   const [draft, setDraft] = useState(message.content);
 
-  const { isWorksheet, isError } = useWorksheetDetection(message.content);
+  const text = editing ? draft : edited ?? message.content;
+
+  const { isWorksheet, isError } = useWorksheetDetection(text);
   const topic = useMemo(
     () => message.content.match(/درس\s+(\S+)/)?.[1] || message.hits?.[0]?.title || "الدرس",
     [message.content, message.hits]
   );
   const { cards, quiz, loading, load } = useLessonExtras(topic);
 
-  const text = editing ? draft : message.content;
+  const toggleEdit = () => {
+    if (editing) setEdited(draft.trim() ? draft : null);
+    else setDraft(edited ?? message.content);
+    setEditing((v) => !v);
+  };
 
   const handleCopy = async () => {
     try {
@@ -83,9 +90,9 @@ export function AssistantMessage({ message, formattedTime }: AssistantMessagePro
             className="w-full rounded-xl border border-input bg-background p-3 text-sm leading-7 outline-none focus:ring-2 focus:ring-ring"
           />
         ) : isWorksheet ? (
-          <WorksheetSections content={message.content} />
+          <WorksheetSections content={text} />
         ) : (
-          <MarkdownRender content={message.content} />
+          <MarkdownRender content={text} />
         )}
 
         <MessageActions
@@ -97,10 +104,7 @@ export function AssistantMessage({ message, formattedTime }: AssistantMessagePro
           onCards={() => load("cards")}
           onQuiz={() => load("quiz")}
           onPrint={() => window.print()}
-          onToggleEdit={() => {
-            setDraft(message.content);
-            setEditing((v) => !v);
-          }}
+          onToggleEdit={toggleEdit}
           onShare={handleShare}
         />
 

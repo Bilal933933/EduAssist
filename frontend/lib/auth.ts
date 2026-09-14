@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "./config";
 
 const TOKEN_KEY = "rt_token";
+const USER_KEY = "rt_user";
 
 export interface AuthUser {
   id: number;
@@ -17,8 +18,24 @@ export function saveToken(token: string): void {
   window.localStorage.setItem(TOKEN_KEY, token);
 }
 
+export function getStoredUser(): AuthUser | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as AuthUser;
+  } catch {
+    return null;
+  }
+}
+
+export function saveUser(user: AuthUser): void {
+  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
 export function clearToken(): void {
   window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(USER_KEY);
 }
 
 export function authHeader(): Record<string, string> {
@@ -48,6 +65,7 @@ async function request(
     throw new Error(msg || "فشلت العملية.");
   }
   saveToken(data.token as string);
+  saveUser(data.user as AuthUser);
   return data.user as AuthUser;
 }
 

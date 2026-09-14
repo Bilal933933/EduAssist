@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -6,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   Req,
   Res,
   UnauthorizedException,
@@ -66,5 +68,26 @@ export class ProxyController {
   @Get("stats")
   stats() {
     return this.ai.passthrough("get", "/api/stats");
+  }
+
+  /** توليد بطاقات مراجعة/اختبار قصير من مصادر المعلم — شخصية → تتطلب توكن */
+  @Post("flashcards")
+  flashcards(@Req() req: Request, @Body() body: unknown) {
+    this.requireStudent(req);
+    return this.ai.passthrough("post", "/api/flashcards", body);
+  }
+
+  @Post("quiz")
+  quiz(@Req() req: Request, @Body() body: unknown) {
+    this.requireStudent(req);
+    return this.ai.passthrough("post", "/api/quiz", body);
+  }
+
+  /** ذاكرة المدرس (المواضيع المتكررة، الدروس الأخيرة) — تُغذي صفحة التقدم */
+  @Get("memory")
+  memory(@Req() req: Request, @Query("grade") grade?: string) {
+    this.requireStudent(req);
+    const qs = grade ? `?grade=${encodeURIComponent(grade)}` : "";
+    return this.ai.passthrough("get", `/api/memory${qs}`);
   }
 }

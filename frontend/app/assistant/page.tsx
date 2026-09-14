@@ -1,10 +1,10 @@
 import { ChatContainer } from "@/components/chat/chat-container";
+import { API_BASE_URL } from "@/lib/config";
 import { StatsResponse } from "@/lib/types";
 
 async function getInitialStats(): Promise<StatsResponse | null> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
   try {
-    const res = await fetch(`${apiUrl}/api/stats`, { cache: "no-store" });
+    const res = await fetch(`${API_BASE_URL}/api/stats`, { cache: "no-store" });
     if (!res.ok) return null;
     return await res.json();
   } catch { return null; }

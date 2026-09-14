@@ -1,35 +1,59 @@
+"use client";
+
 import Link from "next/link";
-import { BookOpen, HelpCircle, Sparkles, BarChart3, ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, BarChart3, BookOpen, HelpCircle, MessageSquare, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { useMemory, useStats, useStoredUser, useThreads } from "@/lib/queries";
+import { mergeTopics } from "@/lib/memory";
+import { aggregateSubjects, UNCLASSIFIED } from "@/lib/subjects";
+import { formatArabicDate, formatCount } from "@/lib/utils";
 
 export default function DashboardPage() {
+  const user = useStoredUser();
+  const { data: stats } = useStats();
+  const { data: threads = [], isLoading: threadsLoading } = useThreads(true);
+  const { data: memory } = useMemory(true);
+
+  const subjects = aggregateSubjects(stats?.by_subject).filter((s) => s.subject !== UNCLASSIFIED);
+  const topics = mergeTopics(memory?.profile.frequent_topics).slice(0, 3);
+  const lastThread = threads[0] ?? null;
+
+  const greeting = user?.name?.trim() ? `مرحباً ${user.name.trim()}` : "مرحباً بك";
+  const chunks = stats?.total_chunks ?? 0;
+
+  const actions = [
+    { label: "حضّر درساً", desc: "خطة شرح + سير حصة من مصادرك", icon: BookOpen, href: "/assistant" },
+    { label: "ناقش الأسلوب", desc: "اقتراح طرائق تدريس من مصادر تربوية", icon: HelpCircle, href: "/assistant" },
+    { label: "اختبر وذاكر", desc: "بطاقات مراجعة واختبارات سريعة", icon: Sparkles, href: "/assistant" },
+    { label: "سجلي", desc: "محادثاتك ومواضيعك الأكثر تكراراً", icon: BarChart3, href: "/progress" },
+  ];
+
   return (
     <div className="container py-6 space-y-6">
       <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold">مساء الخير أستاذ أحمد 👋</h1>
+          <h1 className="text-xl font-extrabold">{greeting}</h1>
           <p className="text-sm text-muted-foreground mt-1">جاهز لتحضير درس اليوم؟</p>
-          <div className="mt-3 flex items-center gap-2 text-xs">
-            <span className="bg-primary text-primary-foreground px-2 py-1 rounded-full font-bold">اللغة العربية — كان وأخواتها</span>
-            <span className="text-muted-foreground">آخر خطة حضرتها</span>
-          </div>
-          <div className="mt-2 h-2 bg-secondary rounded-full overflow-hidden w-64">
-            <div className="h-full bg-primary rounded-full" style={{ width: "57%" }} />
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1">حضّرت 8 / 14 درساً للثالث الإعدادي</p>
+          <p className="text-xs text-muted-foreground mt-3">
+            {!stats
+              ? "جارٍ قراءة مصادرك..."
+              : stats.indexed
+                ? `مصادرك مُفهرسة — ${formatCount(chunks)} مقتطف موزّعة على ${formatCount(subjects.length)} مواد`
+                : "لا توجد مصادر مفهرسة بعد — أضف محتوى وشغّل الفهرسة"}
+          </p>
         </div>
-        <Button asChild className="rounded-full"><Link href="/assistant">حضّر درساً جديداً <ArrowLeft className="size-4 mr-2" /></Link></Button>
+        <Button asChild className="rounded-full">
+          <Link href="/assistant">
+            حضّر درساً جديداً <ArrowLeft className="size-4 mr-2" />
+          </Link>
+        </Button>
       </div>
 
       <div>
         <h2 className="font-bold mb-3">ماذا تريد أن تحضّر؟</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: "حضّر درس", desc: "خطة شرح + سير حصة كاملة من مصادرك", icon: BookOpen, href: "/assistant" },
-            { label: "ناقش الأسلوب", desc: "اقتراح طرق تدريس مشوقة للدرس", icon: HelpCircle, href: "/assistant" },
-            { label: "حاكِ الطلاب", desc: "درّب شرحك مع طلاب افتراضيين (قريباً)", icon: Sparkles, href: "/assistant" },
-            { label: "سجلي", desc: "مراجعة خططك المحضرة وتغطية المنهج", icon: BarChart3, href: "/progress" },
-          ].map((c) => (
+          {actions.map((c) => (
             <Link key={c.label} href={c.href} className="border border-border rounded-2xl p-4 bg-card hover:bg-secondary/50 transition-colors">
               <c.icon className="size-5 text-primary mb-2" />
               <p className="font-bold text-sm">{c.label}</p>
@@ -41,19 +65,50 @@ export default function DashboardPage() {
 
       <div className="grid md:grid-cols-3 gap-4">
         <div className="border border-border rounded-2xl p-4 bg-card">
-          <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="size-3" /> آخر تحضير</p>
-          <p className="font-bold text-sm mt-2">كان وأخواتها — الثالث الإعدادي</p>
-          <p className="text-xs text-muted-foreground">خطة + سير حصة + تدريبات — جاهزة للطباعة</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <MessageSquare className="size-3" /> آخر محادثة
+          </p>
+          {threadsLoading ? (
+            <Spinner className="size-4 mt-3" />
+          ) : lastThread ? (
+            <>
+              <p className="font-bold text-sm mt-2 leading-6">{lastThread.title}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {formatArabicDate(lastThread.updated_at)}
+                {lastThread.message_count ? ` • ${formatCount(lastThread.message_count)} رسالة` : ""}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-2">لا محادثات بعد — ابدأ أول سؤال من المساعد.</p>
+          )}
         </div>
+
         <div className="border border-border rounded-2xl p-4 bg-card">
-          <p className="text-xs text-muted-foreground">تغطية المنهج</p>
-          <p className="text-2xl font-extrabold mt-1">8 / 14</p>
-          <p className="text-xs text-muted-foreground">خطة محضرة • من مصادرك الخاصة</p>
+          <p className="text-xs text-muted-foreground">مواضيعك الأكثر تكراراً</p>
+          {topics.length > 0 ? (
+            <ul className="mt-2 space-y-1.5">
+              {topics.map((t) => (
+                <li key={t.topic} className="flex items-center justify-between text-sm">
+                  <span className="font-bold truncate">{t.topic}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">{formatCount(t.count)} مرة</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-2">ستظهر مواضيعك هنا بعد أول محادثات.</p>
+          )}
         </div>
+
         <div className="border border-primary/30 bg-primary/5 rounded-2xl p-4">
           <p className="font-bold text-sm">ماذا تحضّر الآن؟</p>
-          <Link href="/assistant" className="mt-3 inline-flex w-full bg-primary text-primary-foreground rounded-full py-2 text-sm font-bold justify-center">اسأل مساعدك</Link>
-          <p className="text-[11px] text-muted-foreground text-center mt-2">اللغة العربية • الثالث الإعدادي</p>
+          <Link href="/assistant" className="mt-3 inline-flex w-full bg-primary text-primary-foreground rounded-full py-2 text-sm font-bold justify-center">
+            اسأل مساعدك
+          </Link>
+          <p className="text-[11px] text-muted-foreground text-center mt-2">
+            {memory?.profile.interaction_count
+              ? `${formatCount(memory.profile.interaction_count)} تفاعل مع مساعدك`
+              : "مبني على مصادرك الخاصة"}
+          </p>
         </div>
       </div>
     </div>

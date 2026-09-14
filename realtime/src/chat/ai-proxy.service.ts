@@ -44,9 +44,13 @@ export class AiProxyService {
     throw new Error("AI_UNREACHABLE");
   }
 
-  /** تمرير شفاف لطلبات REST الخاصة بالمحادثات من البايثون */
-  async passthrough(method: "get" | "delete", path: string): Promise<unknown> {
-    const res = await this.client().request({ method, url: path });
+  /** تمرير شفاف لطلبات REST من البايثون (محادثات/إضافات/ذاكرة) */
+  async passthrough(
+    method: "get" | "delete" | "post",
+    path: string,
+    body?: unknown,
+  ): Promise<unknown> {
+    const res = await this.client().request({ method, url: path, data: body });
     return res.data;
   }
 

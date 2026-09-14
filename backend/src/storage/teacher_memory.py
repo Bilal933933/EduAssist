@@ -129,6 +129,18 @@ def _norm_text(s: str) -> str:
     return s
 
 
+def _valid_grade_label(label: str | None) -> str | None:
+    """يرفض تسميات الصفوف الفاسدة (كائنات قديمة/أكواد) — تسمية العرض يجب أن تكون عربية."""
+    if not label:
+        return None
+    text = str(label).strip()
+    if not text or "(" in text or "=" in text:
+        return None
+    if not re.search(r"[\u0600-\u06FF]", text):
+        return None
+    return text
+
+
 def _mistake_key(mistake: str, grade_id: int | None, topic: str | None) -> str:
     base = f"{_norm_text(mistake)}|{grade_id or ''}|{_norm_text(topic or '')}"
     return hashlib.sha1(base.encode("utf-8")).hexdigest()[:40]
@@ -448,6 +460,11 @@ class TeacherMemoryStore:
         if raw in ("", "unknown", "غير محدد", "None"):
             return None
 
+        # مطابقة مباشرة على code (المحلل يولّد أكواداً مثل primary_5)
+        g = session.query(Grade).filter_by(code=raw).first()
+        if g:
+            return g.id
+
         # مطابقة مباشرة على label
         g = session.query(Grade).filter(Grade.label_ar == raw).first()
         if g:
@@ -655,29 +672,27 @@ class TeacherMemoryStore:
 
             if current_grade and grade_id:
                 g = session.query(Grade).get(grade_id)
-                label = g.label_ar if g else current_grade
+                label = _valid_grade_label(g.label_ar if g else None) or current_grade
                 lines.append(f"- الصف المستهدف لهذه الإجابة: {label}")
             elif grades:
-                lines.append(
-                    "- صفوفه: " + ", ".join(g.label_ar for g in grades[:6])
-                )
+                labels = [l for l in (_valid_grade_label(g.label_ar) for g in grades[:6]) if l]
+                if labels:
+                    lines.append("- صفوفه: " + ", ".join(labels))
 
             if current_topic:
                 lines.append(f"- الموضوع الحالي: {current_topic}")
 
             if topics:
-                lines.append(
-                    "- مواضيع متكررة: "
-                    + ", ".join(t.topic for t in topics)
-                )
+                names = list(dict.fromkeys(t.topic for t in topics if t.topic))
+                if names:
+                    lines.append("- مواضيع متكررة: " + ", ".join(names))
 
             if recent:
                 bits = []
                 for e in recent:
                     g = session.query(Grade).get(e.grade_id) if e.grade_id else None
-                    bits.append(
-                        e.topic + (f" ({g.label_ar})" if g else "")
-                    )
+                    label = _valid_grade_label(g.label_ar if g else None)
+                    bits.append(e.topic + (f" ({label})" if label else ""))
                 lines.append(f"- آخر ما حُضّر/نوقش: {', '.join(bits)}")
                 lines.append(
                     "  → تجنّب تكرار نفس الأمثلة أو نفس هيكل الخطة إن تطابق الموضوع والصف."
@@ -971,7 +986,7 @@ class TeacherMemoryStore:
                     {
                         "id": r.id,
                         "topic": r.topic,
-                        "grade": g.label_ar if g else None,
+                        "grade": _valid_grade_label(g.label_ar) if g else None,
                         "grade_id": r.grade_id,
                         "event_type": r.event_type,
                         "at": r.created_at.isoformat() if r.created_at else None,
@@ -1037,10 +1052,13 @@ class TeacherMemoryStore:
             "teacher_id": teacher.external_key or str(teacher.id),
             "teacher_uuid": str(teacher.id),
             "display_name": teacher.display_name or "المدرس",
-            "preferred_grades": [g.label_ar for g in grades],
+            "preferred_grades": [
+                l for l in (_valid_grade_label(g.label_ar) for g in grades) if l
+            ],
             "grades": [
-                {"id": g.id, "code": g.code, "label_ar": g.label_ar, "stage": g.stage}
+                {"id": g.id, "code": g.code, "label_ar": label, "stage": g.stage}
                 for g in grades
+                if (label := _valid_grade_label(g.label_ar))
             ],
             "frequent_topics": [
                 {"topic": t.topic, "count": t.ask_count, "grade_id": t.grade_id}
@@ -1061,8 +1079,8 @@ class TeacherMemoryStore:
                 {
                     "topic": e.topic,
                     "grade": (
-                        session.query(Grade).get(e.grade_id).label_ar
-                        if e.grade_id and session.query(Grade).get(e.grade_id)
+                        _valid_grade_label(g.label_ar)
+                        if e.grade_id and (g := session.query(Grade).get(e.grade_id))
                         else None
                     ),
                     "grade_id": e.grade_id,
@@ -1080,7 +1098,7 @@ class TeacherMemoryStore:
             "id": m.id,
             "mistake": m.mistake,
             "topic": m.topic,
-            "grade": g.label_ar if g else None,
+            "grade": _valid_grade_label(g.label_ar) if g else None,
             "grade_id": m.grade_id,
             "count": m.count,
             "source": m.source,
@@ -1107,9 +1125,13 @@ class TeacherMemoryStore:
         prefs = session.query(TeacherPreference).filter_by(teacher_id=teacher.id).first()
         parts = []
         if grades:
-            parts.append("صفوف: " + ", ".join(g.label_ar for g in grades))
+            labels = [l for l in (_valid_grade_label(g.label_ar) for g in grades) if l]
+            if labels:
+                parts.append("صفوف: " + ", ".join(labels))
         if topics:
-            parts.append("مواضيع: " + ", ".join(t.topic for t in topics))
+            names = list(dict.fromkeys(t.topic for t in topics if t.topic))
+            if names:
+                parts.append("مواضيع: " + ", ".join(names))
         if events:
             parts.append(f"آخر درس: {events[0].topic}")
         if mistakes:

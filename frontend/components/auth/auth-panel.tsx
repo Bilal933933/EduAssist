@@ -45,11 +45,11 @@ export function AuthPanel({ onSuccess }: AuthPanelProps) {
         className="w-full max-w-sm space-y-4 rounded-xl border border-border/60 bg-card p-6 shadow-sm"
       >
         <div className="text-center space-y-1">
-          <h1 className="text-2xl font-bold">مساعد القواعد الذكي</h1>
+          <h1 className="text-2xl font-bold">مساعد المدرس الذكي</h1>
           <p className="text-sm text-muted-foreground">
             {mode === "login"
-              ? "سجّل دخولك لمواصلة محادثاتك"
-              : "أنشئ حسابك لتبدأ التعلم"}
+              ? "سجّل دخولك لمواصلة تحضير دروسك"
+              : "أنشئ حسابك لتبدأ تحضير دروسك"}
           </p>
         </div>
 
