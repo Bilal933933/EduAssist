@@ -1,3 +1,4 @@
+"""إعادة الفهرسة اليدوية — قدرة منصة (HTTP فقط)."""
 from fastapi import APIRouter, Depends
 
 from app.core.errors import AppError

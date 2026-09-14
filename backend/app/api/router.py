@@ -1,10 +1,10 @@
-"""نقطة تجميع راوترات الإصدار الأول — Modular Monolith.
+"""نقطة تجميع الراوترات — Modular Monolith.
 
-المصدر المعتمد: modules/* (شرائح عمودية).
-app.api.v1/* طبقات توافقية تُعاد التصدير من هنا وستُحذف لاحقاً.
+المصدر الوحيد: modules/* (شرائح عمودية + قدرات منصة).
+لا يوجد api/v1 بعد نقلة الحسم.
 """
-from app.api.v1 import reindex, stats, threads
-from app.modules import cards, chat, memory
+from app.modules import cards, chat, memory, threads
+from app.modules.system import reindex, stats
 
 routers = [chat.router, threads.router, stats.router, reindex.router, cards.router, memory.router]
 

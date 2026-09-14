@@ -1,8 +1,6 @@
 """التنفيذ الفعلي للـ Agent — Modular Monolith.
 
 app/agent هو المالك الوحيد لمنطق الوكيل (loop/tools/reranker).
-app/modules/lesson_knowledge أصبح طبقة توافقية مؤقتة تُعاد التصدير من هنا
-وستُحذف في النقلة التالية.
 """
 from app.agent.cards import generate_flashcards, generate_quiz
 from app.agent.chat import ask, build_prompt, embed_question

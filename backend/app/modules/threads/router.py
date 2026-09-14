@@ -1,10 +1,11 @@
+"""راوتر المحادثات — HTTP فقط (CRUD بلا منطق عمل)."""
 from fastapi import APIRouter, Depends
 
 from app.core.errors import AppError
 from app.core.response import ok
 from app.core.validation import ensure_thread_exists, validate_thread_id, validate_title
 from app.dependencies import get_store
-from app.schemas.threads import ThreadRequest
+from app.modules.threads.schemas import ThreadRequest
 
 router = APIRouter(prefix="/api", tags=["threads"])
 

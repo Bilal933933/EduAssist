@@ -1,3 +1,4 @@
+"""إحصائيات الفهرسة — قدرة منصة (HTTP فقط)."""
 from fastapi import APIRouter
 
 from app.core.response import ok

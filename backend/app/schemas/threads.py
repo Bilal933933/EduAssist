@@ -1,7 +1,4 @@
-from typing import Optional
+"""توافقية: المصدر app.modules.threads.schemas."""
+from app.modules.threads.schemas import ThreadRequest
 
-from pydantic import BaseModel, Field
-
-
-class ThreadRequest(BaseModel):
-    title: Optional[str] = Field(default=None, max_length=120)
+__all__ = ["ThreadRequest"]
