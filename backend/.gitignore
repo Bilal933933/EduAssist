@@ -1,4 +1,5 @@
 store/
 logs/
+eval/results/
 __pycache__/
 .env

@@ -37,8 +37,16 @@ def log_retrieval(
     latency_ms: float = 0.0,
     route: str = "chat",
     thread_id: int | None = None,
+    case_id: str | None = None,
+    faithfulness: float | None = None,
+    relevance: float | None = None,
+    evaluation_status: str | None = None,
 ) -> None:
-    """يكتب سطر retrieval.jsonl واحد. لا يرفع استثناء أبداً (التسجيل ثانوي)."""
+    """يكتب سطر retrieval.jsonl واحد. لا يرفع استثناء أبداً (التسجيل ثانوي).
+
+    حقول التقييم اختيارية لربط حدث الاسترجاع بنتيجته بنفس المعرف (case_id)
+    دون جعل اللوجر stateful: المتصل يمرر القيم الجاهزة فقط.
+    """
     try:
         payload = {
             "type": "retrieval",
@@ -52,6 +60,14 @@ def log_retrieval(
             "hits_count": len(hits or []),
             "hits": summarize_hits(hits),
         }
+        if case_id is not None:
+            payload["case_id"] = case_id
+        if evaluation_status is not None:
+            payload["evaluation_status"] = evaluation_status
+        if faithfulness is not None:
+            payload["faithfulness"] = faithfulness
+        if relevance is not None:
+            payload["relevance"] = relevance
         get_logger("retrieval").info(json.dumps(payload, ensure_ascii=False))
     except Exception:
         pass
