@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from app.dependencies import get_summary_repo
-from src.agent.loop import run_agentic_rag, run_agentic_rag_stream
-from src.agent.router import route, get_chitchat_reply
-from src.agent.fc_client import call_simple
+from app.modules.lesson_knowledge.application.agent.loop import run_agentic_rag, run_agentic_rag_stream
+from app.modules.lesson_knowledge.application.agent.router import route, get_chitchat_reply
+from app.modules.lesson_knowledge.application.agent.fc_client import call_simple
 from src.query_analyzer.analyzer import analyze
 from app.modules.tutor_orchestrator.application.route_message_use_case import (
     resolve_module,

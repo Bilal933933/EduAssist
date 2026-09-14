@@ -1,7 +1,7 @@
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
-from src.agent.tools import _smart_read, TOOL_DECLARATIONS, execute_tool
+from app.modules.lesson_knowledge.application.agent.tools import _smart_read, TOOL_DECLARATIONS, execute_tool
 from unittest.mock import MagicMock
 
 def test_tool_declarations():

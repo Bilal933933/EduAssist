@@ -1,6 +1,6 @@
 """تصحيح نحوي/إملائي مباشر عبر LLM — بلا RAG وبلا أدوات."""
 
-from src.agent.fc_client import call_simple
+from app.modules.lesson_knowledge.application.agent.fc_client import call_simple
 
 from app.modules.grammar_correction.application.grammar_prompts import (
     GRAMMAR_SYSTEM,

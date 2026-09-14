@@ -8,7 +8,7 @@ if hasattr(sys.stdout, "reconfigure"):
 from dotenv import load_dotenv
 from src.knowledge.vector_service import VectorService
 from src.knowledge.hybrid import rrf_fuse
-from src.agent.clarifier import extract_scope
+from app.modules.lesson_knowledge.application.agent.clarifier import extract_scope
 
 load_dotenv()
 

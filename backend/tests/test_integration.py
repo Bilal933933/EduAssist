@@ -2,13 +2,13 @@ import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
 from unittest.mock import MagicMock, patch
-from src.agent.decomposer import decompose_question
-from src.agent.validator import validate_citations
+from app.modules.lesson_knowledge.application.agent.decomposer import decompose_question
+from app.modules.lesson_knowledge.application.agent.validator import validate_citations
 
 def test_decomposer_prepare_lesson():
     client = MagicMock()
     # mock _call_simple ليعيد JSON تفكيك
-    with patch("src.agent.fc_client.call_simple", return_value='{"queries": ["تعريف الفاعل", "علامات رفع الفاعل"]}'):
+    with patch("app.modules.lesson_knowledge.application.agent.fc_client.call_simple", return_value='{"queries": ["تعريف الفاعل", "علامات رفع الفاعل"]}'):
         queries = decompose_question(client, "حضر لي درس الفاعل - الصف الخامس")
         assert len(queries) >= 2
         assert any("الفاعل" in q for q in queries)
@@ -22,13 +22,13 @@ def test_decomposer_short():
 def test_validator_correct():
     client = MagicMock()
     # mock _call_simple ليعيد valid=true
-    with patch("src.agent.fc_client.call_simple", return_value='{"valid": true, "issues": [], "corrected": "نص صحيح"}'):
+    with patch("app.modules.lesson_knowledge.application.agent.fc_client.call_simple", return_value='{"valid": true, "issues": [], "corrected": "نص صحيح"}'):
         valid, corrected, issues = validate_citations(client, "الفاعل مرفوع", [{"title": "ت", "text": "الفاعل مرفوع"}])
         assert valid == True
 
 def test_validator_hallucination():
     client = MagicMock()
-    with patch("src.agent.fc_client.call_simple", return_value='{"valid": false, "issues": ["هلوسة"], "corrected": "لا يوجد في مصادرك"}'):
+    with patch("app.modules.lesson_knowledge.application.agent.fc_client.call_simple", return_value='{"valid": false, "issues": ["هلوسة"], "corrected": "لا يوجد في مصادرك"}'):
         valid, corrected, issues = validate_citations(client, "هلوسة", [{"title": "ت", "text": "نص"}])
         assert valid == False
         assert "لا يوجد" in corrected

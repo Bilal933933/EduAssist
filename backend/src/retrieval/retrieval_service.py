@@ -1,7 +1,7 @@
 from src.knowledge.vector_service import VectorService
 from src.knowledge.hybrid import rrf_fuse
-from src.agent.clarifier import extract_scope
-from src.agent.reranker import rerank_llm
+from app.modules.lesson_knowledge.application.agent.clarifier import extract_scope
+from app.modules.lesson_knowledge.application.agent.reranker import rerank_llm
 
 class RetrievalService:
     """Domain service — فصل retrieval عن HTTP و Agent. يستخدم scope filtering قبل التشابه."""

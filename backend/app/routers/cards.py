@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from google import genai
 from app.dependencies import get_gemini_client, get_kb
-from src.agent.cards import generate_flashcards, generate_quiz
-from src.agent.chat import embed_question
+from app.modules.lesson_knowledge.application.agent.cards import generate_flashcards, generate_quiz
+from app.modules.lesson_knowledge.application.agent.chat import embed_question
 
 router = APIRouter(prefix="/api", tags=["cards"])
 
