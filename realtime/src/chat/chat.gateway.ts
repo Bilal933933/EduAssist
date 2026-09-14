@@ -1,4 +1,4 @@
-import { Logger } from "@nestjs/common";
+import { Logger, UseFilters } from "@nestjs/common";
 import {
   ConnectedSocket,
   MessageBody,
@@ -11,6 +11,9 @@ import {
 import { Server, Socket } from "socket.io";
 import { config } from "../config";
 import { verifyToken } from "../auth/jwt.util";
+import { AppError, messageFor } from "../common/errors";
+import { WsExceptionFilter } from "../common/filters/ws-exception.filter";
+import { getLogger } from "../common/logger";
 import { AiProxyService } from "./ai-proxy.service";
 
 interface AuthedSocket extends Socket {
@@ -18,6 +21,7 @@ interface AuthedSocket extends Socket {
 }
 
 @WebSocketGateway({ cors: { origin: true }, path: "/socket.io" })
+@UseFilters(new WsExceptionFilter())
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server!: Server;
 
@@ -31,7 +35,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const raw = (client.handshake.auth?.token as string) || "";
     const payload = raw ? verifyToken(raw.replace(/^Bearer\s+/i, "")) : null;
     if (!payload) {
-      client.emit("error", { message: "غير مصرح: توكن مفقود أو غير صالح." });
+      client.emit("error", { code: "UNAUTHORIZED", message: messageFor("UNAUTHORIZED").message });
       client.disconnect(true);
       return;
     }
@@ -52,11 +56,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const question = (body?.question || "").trim();
     if (!question) {
-      client.emit("error", { message: "السؤال فارغ." });
+      client.emit("error", { code: "QUESTION_EMPTY", message: messageFor("QUESTION_EMPTY").message });
       return;
     }
     if (!this.allow(client.data.userId)) {
       client.emit("error", {
+        code: "RATE_LIMITED",
         message: `تجاوزت حد الأسئلة (${config.rateLimitPerMin} في الدقيقة). انتظر قليلاً.`,
       });
       return;
@@ -65,14 +70,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const result = await this.ai.ask(question, body?.thread_id ?? null);
       client.emit("answer", result);
     } catch (err: any) {
-      const isTimeout = err?.code === "ECONNABORTED" || err?.message?.includes("timeout");
-      const message = isTimeout
-        ? "انتهت مهلة المعالجة (60 ثانية). تم حفظ ما وصل - اضغط Retry للمحاولة."
-        : err?.message === "AI_UNREACHABLE"
-        ? "خدمة الذكاء الاصطناعي غير متاحة حالياً. حاول بعد قليل."
-        : "حدث خطأ أثناء معالجة سؤالك. اضغط Retry.";
-      this.logger.error(`فشل سؤال من #${client.data.userId}: ${err?.message} code=${err?.code}`);
-      client.emit("error", { message, retryable: true });
+      // أخطاء بأكواد بايثون نفسها — الفرونت يعرض message مباشرة
+      const code = err instanceof AppError ? err.code : "INTERNAL_ERROR";
+      const { message } = messageFor(code);
+      getLogger("errors").error(JSON.stringify({ type: "ws_error", code, user: client.data.userId }));
+      this.logger.error(`فشل سؤال من #${client.data.userId}: ${code}`);
+      client.emit("error", { code, message, retryable: true });
     }
   }
 

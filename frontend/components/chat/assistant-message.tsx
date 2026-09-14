@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { ChatMessage } from "@/lib/types";
-import { toast } from "sonner";
 import { AgentTrace } from "./agent-trace";
 import { WorksheetSections } from "./worksheet-sections";
 import { MarkdownRender } from "./markdown-render";
@@ -12,6 +11,7 @@ import { LessonExtrasView } from "./lesson-extras-view";
 import { MessageSources } from "./message-sources";
 import { useWorksheetDetection } from "@/hooks/use-worksheet-detection";
 import { useLessonExtras } from "@/hooks/use-lesson-extras";
+import { useMessageClipboard } from "@/hooks/use-message-clipboard";
 
 interface AssistantMessageProps {
   message: ChatMessage;
@@ -20,12 +20,12 @@ interface AssistantMessageProps {
 
 // وظيفة واحدة: تنسيق رسالة المساعد بأسلوب Gemini — بدون منطق كشف أو جلب داخلي.
 export function AssistantMessage({ message, formattedTime }: AssistantMessageProps) {
-  const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [edited, setEdited] = useState<string | null>(null);
   const [draft, setDraft] = useState(message.content);
 
   const text = editing ? draft : edited ?? message.content;
+  const { copied, copy, share } = useMessageClipboard(text);
 
   const { isWorksheet, isError } = useWorksheetDetection(text);
   const topic = useMemo(
@@ -38,30 +38,6 @@ export function AssistantMessage({ message, formattedTime }: AssistantMessagePro
     if (editing) setEdited(draft.trim() ? draft : null);
     else setDraft(edited ?? message.content);
     setEditing((v) => !v);
-  };
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      toast.success("تم نسخ الإجابة");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("فشل نسخ النص");
-    }
-  };
-
-  const handleShare = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "إجابة مساعد المدرس", text });
-      } else {
-        await navigator.clipboard.writeText(text);
-        toast.success("تم نسخ النص للمشاركة");
-      }
-    } catch {
-      /* إلغاء المستخدم */
-    }
   };
 
   return (
@@ -100,12 +76,12 @@ export function AssistantMessage({ message, formattedTime }: AssistantMessagePro
           editing={editing}
           loading={loading}
           isError={isError}
-          onCopy={handleCopy}
+          onCopy={copy}
           onCards={() => load("cards")}
           onQuiz={() => load("quiz")}
           onPrint={() => window.print()}
           onToggleEdit={toggleEdit}
-          onShare={handleShare}
+          onShare={share}
         />
 
         <LessonExtrasView cards={cards} quiz={quiz} />

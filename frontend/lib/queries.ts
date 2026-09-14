@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchMemory, fetchStats, fetchThreads } from "@/lib/api";
+import { fetchMemory, fetchStats, fetchThreadMessages, fetchThreads } from "@/lib/api";
 import { AuthUser, getAuthToken, getStoredUser } from "@/lib/auth";
 
 // مصادر الحقيقة الوحيدة لحالة السيرفر (AGENTS.md: TanStack Query وليس fetch في useEffect).
 export const queryKeys = {
   stats: ["stats"] as const,
   threads: ["threads"] as const,
+  threadMessages: (id: number) => ["thread-messages", id] as const,
   memory: (grade?: string) => ["memory", grade ?? "all"] as const,
 };
 
@@ -26,6 +27,16 @@ export function useThreads(enabled: boolean) {
     queryKey: queryKeys.threads,
     queryFn: fetchThreads,
     enabled: enabled && !!getAuthToken(),
+  });
+}
+
+// رسائل محادثة محفوظة — تُستخدم لبذر شاشة /assistant/[threadId] عند الإقلاع.
+export function useThreadMessages(threadId: number | null | undefined) {
+  return useQuery({
+    queryKey: queryKeys.threadMessages(threadId ?? 0),
+    queryFn: () => fetchThreadMessages(threadId as number),
+    enabled: threadId != null && !!getAuthToken(),
+    staleTime: 30_000,
   });
 }
 

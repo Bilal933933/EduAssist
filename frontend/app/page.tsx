@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { LandingHero } from "@/components/edu/landing-hero";
+import { SubjectsGrid } from "@/components/edu/subjects-grid";
 import { Button } from "@/components/ui/button";
-import { API_BASE_URL } from "@/lib/config";
+import { SERVER_API_BASE_URL } from "@/lib/config";
 import { StatsResponse } from "@/lib/types";
-import { aggregateSubjects, subjectIcon, UNCLASSIFIED } from "@/lib/subjects";
-import { formatCount } from "@/lib/utils";
 
 async function getStats(): Promise<StatsResponse | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/stats`, { next: { revalidate: 60 } });
+    const res = await fetch(`${SERVER_API_BASE_URL}/api/stats`, { next: { revalidate: 60 } });
     if (!res.ok) return null;
-    return await res.json();
+    const j = await res.json();
+    return (j?.ok === true ? j.data : j) as StatsResponse;
   } catch {
     return null;
   }
@@ -18,9 +18,6 @@ async function getStats(): Promise<StatsResponse | null> {
 
 export default async function HomePage() {
   const stats = await getStats();
-  const subjects = aggregateSubjects(stats?.by_subject)
-    .filter((s) => s.subject !== UNCLASSIFIED)
-    .slice(0, 6);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -38,40 +35,11 @@ export default async function HomePage() {
         </div>
       </header>
       <LandingHero />
-      <section className="container py-10">
-        <div className="flex items-end justify-between mb-4">
-          <h2 className="font-bold text-lg text-right">موادك المفهرسة</h2>
-          {stats?.indexed && (
-            <p className="text-xs text-muted-foreground">{formatCount(stats.total_chunks)} مقتطف من مصادرك</p>
-          )}
-        </div>
-        {subjects.length > 0 ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {subjects.map((s) => {
-              const Icon = subjectIcon(s.subject);
-              return (
-                <Link
-                  key={s.subject}
-                  href={`/subjects/${encodeURIComponent(s.subject)}`}
-                  className="border border-border rounded-2xl p-5 bg-card hover:shadow-md transition-shadow flex items-center gap-3"
-                >
-                  <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                    <Icon className="size-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-sm truncate">{s.subject}</p>
-                    <p className="text-xs text-muted-foreground">{formatCount(s.chunks)} مقتطف مفهرس</p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="border border-border rounded-2xl p-6 bg-card text-center text-sm text-muted-foreground">
-            لا توجد مواد مفهرسة بعد — أضف مصادرك وشغّل الفهرسة لتظهر هنا.
-          </div>
-        )}
-      </section>
+      <SubjectsGrid
+        rows={stats?.by_subject}
+        totalChunks={stats?.total_chunks ?? 0}
+        indexed={stats?.indexed}
+      />
       <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
         EduAssist — مساعد المدرس الذكي
       </footer>

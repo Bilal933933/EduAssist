@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import { Direction } from "radix-ui";
 import { Providers } from "./providers";
+import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 const ibmPlexArabic = IBM_Plex_Sans_Arabic({
@@ -45,6 +46,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className={ibmPlexArabic.variable} suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased selection:bg-primary/20 selection:text-primary">
+        <PwaRegister />
         <Direction.Provider dir="rtl">
           <Providers>{children}</Providers>
         </Direction.Provider>

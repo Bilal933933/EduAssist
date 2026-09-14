@@ -1,5 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import axios from "axios";
+import { AppError } from "../common/errors";
+import { getRequestId } from "../common/request-context";
+import { isEnvelope } from "../common/response";
 import { config } from "../config";
 
 @Injectable()
@@ -10,11 +13,15 @@ export class AiProxyService {
     return axios.create({
       baseURL: config.aiServiceUrl,
       timeout: config.aiTimeoutMs,
-      headers: { "X-Internal-Key": config.internalApiKey },
+      headers: {
+        "X-Internal-Key": config.internalApiKey,
+        // نفس requestId يعبر Realtime → بايثون لتتبع واحد
+        ...(getRequestId() ? { "X-Request-Id": getRequestId() as string } : {}),
+      },
     });
   }
 
-  /** يسأل مخ الـ AI: سؤال الطالب ← إجابة كاملة مع المصادر */
+  /** يسأل مخ الـ AI: سؤال الطالب ← إجابة كاملة مع المصادر (يفك مغلف بايثون) */
   async ask(
     question: string,
     threadId: number | null,
@@ -25,8 +32,14 @@ export class AiProxyService {
           question,
           thread_id: threadId ?? null,
         });
+        // بايثون يرد بمغلف {ok,data} — نفك data ليبقى حدث السوكت كما كان
+        if (isEnvelope(res.data)) {
+          if (res.data.ok) return res.data.data as { answer: string; hits: unknown[]; thread_id: number | null };
+          throw new AppError(res.data.error.code);
+        }
         return res.data;
       } catch (err: any) {
+        if (err instanceof AppError) throw err; // خطأ منطقي من بايثون — لا تكرر
         const code = err?.code || "";
         const networkError =
           code === "ECONNREFUSED" || code === "ETIMEDOUT" || code === "ECONNABORTED";
@@ -35,16 +48,20 @@ export class AiProxyService {
           continue;
         }
         if (err.response) {
+          // مغلف بايثون مر عبر الفلتر؟ نرمي كوده مباشرة
+          if (isEnvelope(err.response.data) && !err.response.data.ok) {
+            throw new AppError(err.response.data.error.code);
+          }
           // خطأ منطقي من بايثون نفسه (4xx/5xx) — لا تكرر المحاولة
-          throw new Error(`AI_ERROR_${err.response.status}`);
+          throw new AppError("INTERNAL_ERROR");
         }
-        throw new Error("AI_UNREACHABLE");
+        throw new AppError("AI_UNREACHABLE");
       }
     }
-    throw new Error("AI_UNREACHABLE");
+    throw new AppError("AI_UNREACHABLE");
   }
 
-  /** تمرير شفاف لطلبات REST من البايثون (محادثات/إضافات/ذاكرة) */
+  /** تمرير شفاف لطلبات REST من البايثون (محادثات/إضافات/ذاكرة) — المغلف يُمرر كما هو */
   async passthrough(
     method: "get" | "delete" | "post",
     path: string,
@@ -56,7 +73,10 @@ export class AiProxyService {
 
   async stream(body: any) {
     const res = await axios.post(`${config.aiServiceUrl}/api/chat/stream`, body, {
-      headers: { "X-Internal-Key": config.internalApiKey },
+      headers: {
+        "X-Internal-Key": config.internalApiKey,
+        ...(getRequestId() ? { "X-Request-Id": getRequestId() as string } : {}),
+      },
       responseType: "stream",
       timeout: 120000,
     });

@@ -1,33 +1,61 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import { API_BASE_URL } from "@/lib/config";
 import { getAuthToken } from "@/lib/auth";
-import { ChatResponse } from "@/lib/types";
-import { toast } from "sonner";
+import type { ChatResponse } from "@/lib/types";
 
-export function useChatSocket(
-  enabled: boolean,
-  onAnswer: (data: ChatResponse) => void,
-  onError: (msg: string) => void
-) {
+interface ChatSocketOptions {
+  enabled: boolean;
+  onAnswer: (data: ChatResponse) => void;
+  onError: (msg: string) => void;
+}
+
+// وظيفة واحدة: قناة السوكت الاحتياطية — اتصال واحد + حالة + إرسال. الكولباك عبر liveRef بلا stale closure.
+export function useChatSocket({ enabled, onAnswer, onError }: ChatSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
+  const [connected, setConnected] = useState(false);
+
+  // مراجع حية — التسجيل على السوكت مرة واحدة عند التركيب
+  const liveRef = useRef({ onAnswer, onError });
+  liveRef.current = { onAnswer, onError };
 
   useEffect(() => {
     if (!enabled) return;
-    const socket = io(API_BASE_URL, { auth: { token: getAuthToken() || "" }, reconnectionDelayMax: 10000 });
+    const socket = io(API_BASE_URL, {
+      auth: { token: getAuthToken() || "" },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000,
+    });
     socketRef.current = socket;
-    socket.on("answer", onAnswer);
-    socket.on("error", (e: { message?: string }) => onError(e.message || "خطأ"));
-    return () => { socket.disconnect(); socketRef.current = null; };
+    socket.on("connect", () => setConnected(true));
+    socket.on("disconnect", () => setConnected(false));
+    socket.on("connect_error", () => setConnected(false));
+    socket.on("answer", (data: ChatResponse) => liveRef.current.onAnswer(data));
+    socket.on("error", (e: { message?: string }) =>
+      liveRef.current.onError(e?.message || "خطأ")
+    );
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+      setConnected(false);
+    };
   }, [enabled]);
 
-  const send = (threadId: number | null, question: string) => {
-    const s = socketRef.current;
-    if (!s || !s.connected) { onError("لا يوجد اتصال"); return false; }
-    s.emit("question", { thread_id: threadId, question });
-    return true;
-  };
+  const send = useCallback(
+    (threadId: number | null, question: string) => {
+      const s = socketRef.current;
+      if (!s || !s.connected) {
+        liveRef.current.onError("لا يوجد اتصال");
+        return false;
+      }
+      s.emit("question", { thread_id: threadId, question });
+      return true;
+    },
+    []
+  );
 
-  return { send, socketRef };
+  return { send, connected };
 }

@@ -38,6 +38,13 @@ export function clearToken(): void {
   window.localStorage.removeItem(USER_KEY);
 }
 
+/** جلسة منتهية أو مرفوضة (401) — مسح + رجوع لشاشة الدخول. */
+export function handleUnauthorized(): void {
+  if (typeof window === "undefined") return;
+  clearToken();
+  window.location.assign("/assistant");
+}
+
 export function authHeader(): Record<string, string> {
   const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -59,14 +66,19 @@ async function request(
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg = Array.isArray(data?.message)
-      ? data.message.join(" - ")
-      : data?.message;
+    const msg =
+      data?.error?.message ||
+      (Array.isArray(data?.message) ? data.message.join(" - ") : data?.message);
     throw new Error(msg || "فشلت العملية.");
   }
-  saveToken(data.token as string);
-  saveUser(data.user as AuthUser);
-  return data.user as AuthUser;
+  // مغلف موحد {ok,data} أو خام {token,user} — ندعم الاثنين
+  const payload = data?.ok === true || data?.ok === false ? data.data : data;
+  if (!data?.ok && data?.error) {
+    throw new Error(data.error.message || "فشلت العملية.");
+  }
+  saveToken(payload.token as string);
+  saveUser(payload.user as AuthUser);
+  return payload.user as AuthUser;
 }
 
 export function login(email: string, password: string): Promise<AuthUser> {

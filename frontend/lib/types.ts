@@ -56,11 +56,19 @@ export interface Flashcard {
   a: string;
 }
 
+export interface FlashcardsResponse {
+  cards: Flashcard[];
+}
+
 export interface QuizQuestion {
   q: string;
   options: string[];
   answer: number;
   explain?: string;
+}
+
+export interface QuizResponse {
+  quiz: QuizQuestion[];
 }
 
 export interface StatsResponse {
