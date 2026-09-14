@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, ".")
 
-from app.modules.lesson_knowledge.application.agent.critic import judge_relevance, judge_and_filter, _restore_floor
+from app.agent.critic import judge_relevance, judge_and_filter, _restore_floor
 
 
 def _hits_branch(n, branch="نحو"):
@@ -42,7 +42,7 @@ def _ok_json(keep):
 
 
 def test_batch_merge_keeps_all():
-    with patch("app.modules.lesson_knowledge.application.agent.fc_client.call_simple",
+    with patch("app.agent.fc_client.call_simple",
                side_effect=[_ok_json(list(range(0, 20))), _ok_json(list(range(20, 35)))]):
         v = judge_relevance(None, "سؤال", _hits(35))
     assert v["keep"] == list(range(35)), v["keep"]
@@ -51,14 +51,14 @@ def test_batch_merge_keeps_all():
 
 
 def test_beyond_batch_counted_as_unjudged():
-    with patch("app.modules.lesson_knowledge.application.agent.fc_client.call_simple",
+    with patch("app.agent.fc_client.call_simple",
                return_value=_ok_json(list(range(0, 20)))):
         v = judge_relevance(None, "سؤال", _hits(50))
     assert v["unjudged"] == 10 and v["keep"] == list(range(20)), (v["unjudged"], v["keep"])
 
 
 def test_fail_open_on_llm_error():
-    with patch("app.modules.lesson_knowledge.application.agent.fc_client.call_simple", side_effect=RuntimeError("429")):
+    with patch("app.agent.fc_client.call_simple", side_effect=RuntimeError("429")):
         v = judge_relevance(None, "سؤال", _hits(5))
     assert v["keep"] == [0, 1, 2, 3, 4] and v["proceed"] is True
 
@@ -70,8 +70,8 @@ def test_retry_fires_once_then_keeps():
                          "next_queries": [], "proceed": True})
     extra = [{"doc_key": "kx", "title": "إضافي", "source": "م",
               "branch": "نحو", "page": 1, "text": "نص إضافي"}]
-    with patch("app.modules.lesson_knowledge.application.agent.fc_client.call_simple", side_effect=[first, second]), \
-         patch("app.modules.lesson_knowledge.application.agent.tools.execute_tool", return_value=extra):
+    with patch("app.agent.fc_client.call_simple", side_effect=[first, second]), \
+         patch("app.agent.tools.execute_tool", return_value=extra):
         kept, info = judge_and_filter(None, "سؤال", _hits(2), kb=None, scope={})
     assert info["retry"] is True and info["kept"] == 3, info
     assert len(info["dropped_titles"]) == 0

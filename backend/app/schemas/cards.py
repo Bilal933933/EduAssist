@@ -1,6 +1,4 @@
-from pydantic import BaseModel, Field
+"""توافقية: المصدر app.modules.cards.schemas."""
+from app.modules.cards.schemas import CardsRequest
 
-
-class CardsRequest(BaseModel):
-    topic: str = Field(min_length=1, max_length=200)
-    question: str = Field(default="", max_length=2000)
+__all__ = ["CardsRequest"]

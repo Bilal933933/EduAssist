@@ -1,5 +1,6 @@
 from app.core.errors import AppError
-from app.core.validation import ensure_thread_exists, validate_question, validate_teacher_id, validate_thread_id
+from app.core.validation import ensure_thread_exists, validate_teacher_id, validate_thread_id
+from app.modules.chat.validation import validate_question
 from app.dependencies import get_summary_repo
 from app.agent import call_simple, get_chitchat_reply, route, run_agentic_rag, run_agentic_rag_stream
 from src.query_analyzer.analyzer import analyze

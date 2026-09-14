@@ -1,7 +1,7 @@
-"""عقود Pydantic — المصدر الوحيد لأشكال الطلب/الرد في API."""
-from app.schemas.chat import ChatRequest
+"""توافقية: العقود انتقلت للشرائح — المصدر modules/*/schemas.py."""
+from app.modules.cards.schemas import CardsRequest
+from app.modules.chat.schemas import ChatRequest
+from app.modules.memory.schemas import InteractionUpdate, ManualUpdate, MistakeBody
 from app.schemas.threads import ThreadRequest
-from app.schemas.cards import CardsRequest
-from app.schemas.memory import InteractionUpdate, ManualUpdate, MistakeBody
 
 __all__ = ["ChatRequest", "ThreadRequest", "CardsRequest", "ManualUpdate", "InteractionUpdate", "MistakeBody"]

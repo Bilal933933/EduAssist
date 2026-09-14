@@ -3,7 +3,7 @@
 قراءة فقط على teacher_memory (لا كتابة من هنا).
 """
 
-from app.modules.lesson_knowledge.application.agent.fc_client import call_simple
+from app.agent.fc_client import call_simple
 from src.storage.chat_store import MAX_CONTEXT_MESSAGES
 
 from app.modules.conversation.application.conversation_prompts import (

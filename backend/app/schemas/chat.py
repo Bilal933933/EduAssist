@@ -1,9 +1,4 @@
-from typing import Optional
+"""توافقية: المصدر app.modules.chat.schemas."""
+from app.modules.chat.schemas import ChatRequest
 
-from pydantic import BaseModel, Field
-
-
-class ChatRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=2000)
-    thread_id: Optional[int] = Field(default=None, gt=0)
-    teacher_id: Optional[str] = Field(default="default", max_length=64)
+__all__ = ["ChatRequest"]

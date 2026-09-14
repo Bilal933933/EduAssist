@@ -1,49 +1,25 @@
-"""طبقة التحقق — نوعان فقط، دوال خالصة بلا FastAPI لتبقى قابلة لإعادة الاستخدام والاختبار.
+"""التحقق العام — cross-cutting فقط (Modular Monolith).
 
-النوع 1 (شكلي): يُغطى بقيود Pydantic Field في schemas + validation_error_handler.
-النوع 2 (منطقي): دوال هنا ترفع AppError برمز دقيق قبل أي IO (store/kb/LLM).
+القاعدة: العام الشكلي فقط يبقى هنا (teacher/thread/title).
+تحقق النطاق (question/topic/grade) مالكه modules/*، وهنا وكلاء توافقية
+بتحميل كسول (lazy) لتفادي الاستيراد الدائري: core ← modules عند التحميل.
 """
 import re
-import string
 
 from app.core.errors import AppError
 
-MAX_QUESTION = 2000
-MIN_QUESTION = 2
-MAX_TOPIC = 200
 MAX_TITLE = 120
 MAX_TEACHER_ID = 64
+# ثوابت توافقية (المصدر المعتمد modules/*/validation.py — نسخ ثابتة بلا استيراد)
+MAX_TOPIC = 200
+MAX_QUESTION = 2000
+MIN_QUESTION = 2
 
 _TEACHER_RE = re.compile(r"^[a-zA-Z0-9_\-]+$")
-_ARABIC_PUNCT = "؟،؛«»…ـ"
-_PUNCT_SET = set(string.punctuation + string.whitespace + _ARABIC_PUNCT)
 
 
 def _strip(text: str | None) -> str:
     return (text or "").strip()
-
-
-def validate_question(question: str | None) -> str:
-    """تحقق منطقي من السؤال. يعيد النص المقلم أو يرفع AppError."""
-    q = _strip(question)
-    if not q:
-        raise AppError("QUESTION_EMPTY")
-    if len(q) < MIN_QUESTION:
-        raise AppError("QUESTION_TOO_SHORT")
-    if len(q) > MAX_QUESTION:
-        raise AppError("QUESTION_TOO_LONG")
-    if all(ch in _PUNCT_SET for ch in q):
-        raise AppError("QUESTION_EMPTY")
-    return q
-
-
-def validate_topic(topic: str | None) -> str:
-    t = _strip(topic)
-    if not t:
-        raise AppError("TOPIC_EMPTY")
-    if len(t) > MAX_TOPIC:
-        raise AppError("TOPIC_TOO_LONG")
-    return t
 
 
 def validate_teacher_id(teacher_id: str | None) -> str:
@@ -70,16 +46,22 @@ def validate_title(title: str | None) -> str | None:
     return t or None
 
 
-def validate_grade(grade: str | None, catalog: list[str] | None = None) -> str | None:
-    """إن توفر الكتالوج تحقق منطقي صارم، وإلا فحص شكلي فقط (لا يكسر بدون DB)."""
-    g = _strip(grade)
-    if not g:
-        return None
-    if catalog is not None and g not in catalog:
-        raise AppError("GRADE_UNKNOWN")
-    return g
-
-
 def ensure_thread_exists(store, thread_id: int) -> None:
     if not store.thread_exists(thread_id):
         raise AppError("THREAD_NOT_FOUND")
+
+
+# --- توافقية كسولة (لا استيراد علوي من modules لتفادي الدورة) ---
+def validate_question(question: str | None) -> str:
+    from app.modules.chat.validation import validate_question as _v
+    return _v(question)
+
+
+def validate_topic(topic: str | None) -> str:
+    from app.modules.cards.validation import validate_topic as _v
+    return _v(topic)
+
+
+def validate_grade(grade: str | None, catalog: list[str] | None = None) -> str | None:
+    from app.modules.memory.validation import validate_grade as _v
+    return _v(grade, catalog)

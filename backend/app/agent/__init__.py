@@ -1,21 +1,22 @@
-"""نقطة الدخول الموحدة للـ Agent — تعيد التصدير من التنفيذ المعتمد.
+"""التنفيذ الفعلي للـ Agent — Modular Monolith.
 
-التنفيذ المعتمد حالياً: app.modules.lesson_knowledge.application.agent
-خارطة الطريق: نقل الملفات فيزيائياً إلى هنا، ثم حذف modules/lesson_knowledge.
+app/agent هو المالك الوحيد لمنطق الوكيل (loop/tools/reranker).
+app/modules/lesson_knowledge أصبح طبقة توافقية مؤقتة تُعاد التصدير من هنا
+وستُحذف في النقلة التالية.
 """
-from app.modules.lesson_knowledge.application.agent.cards import generate_flashcards, generate_quiz
-from app.modules.lesson_knowledge.application.agent.chat import ask, build_prompt, embed_question
-from app.modules.lesson_knowledge.application.agent.clarifier import extract_scope, needs_clarification
-from app.modules.lesson_knowledge.application.agent.critic import judge_and_filter, judge_relevance
-from app.modules.lesson_knowledge.application.agent.decomposer import decompose_question
-from app.modules.lesson_knowledge.application.agent.fc_client import call_simple, call_with_tools
-from app.modules.lesson_knowledge.application.agent.generator import build_teacher_prompt
-from app.modules.lesson_knowledge.application.agent.loop import run_agentic_rag, run_agentic_rag_stream
-from app.modules.lesson_knowledge.application.agent.prompts import TEACHER_SYSTEM
-from app.modules.lesson_knowledge.application.agent.reranker import rerank_llm, rerank_local
-from app.modules.lesson_knowledge.application.agent.router import get_chitchat_reply, route
-from app.modules.lesson_knowledge.application.agent.sub_agents import run_sub_agents, synthesize_lesson
-from app.modules.lesson_knowledge.application.agent.validator import validate_citations
+from app.agent.cards import generate_flashcards, generate_quiz
+from app.agent.chat import ask, build_prompt, embed_question
+from app.agent.clarifier import extract_scope, needs_clarification
+from app.agent.critic import judge_and_filter, judge_relevance
+from app.agent.decomposer import decompose_question
+from app.agent.fc_client import call_simple, call_with_tools
+from app.agent.generator import build_teacher_prompt
+from app.agent.loop import run_agentic_rag, run_agentic_rag_stream
+from app.agent.prompts import TEACHER_SYSTEM
+from app.agent.reranker import rerank_llm, rerank_local
+from app.agent.router import get_chitchat_reply, route
+from app.agent.sub_agents import run_sub_agents, synthesize_lesson
+from app.agent.validator import validate_citations
 
 __all__ = [
     "run_agentic_rag", "run_agentic_rag_stream", "decompose_question",
