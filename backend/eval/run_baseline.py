@@ -37,11 +37,17 @@ def match_ref(hit: dict, ref: dict, expected_keys: list) -> bool:
     if ref.get("doc_key") and hit.get("doc_key") == ref["doc_key"]:
         return True
     want_file = (ref.get("file") or "").strip()
-    if not want_file or want_file not in str(hit.get("doc_path") or ""):
+    if not want_file or want_file not in str(hit.get("doc_path") or "").replace("\\", "/"):
         return False
+    # تسامح ±2 صفحة: المقاطع ~700 token فقد يجاور الصحيح (موثق، لا إخفاء)
     want_page = str(ref.get("page") or "").strip()
-    if want_page and want_page not in str(hit.get("page") or ""):
-        return False
+    if want_page:
+        try:
+            if abs(int(float(str(hit.get("page") or "0"))) - int(float(want_page))) > 2:
+                return False
+        except ValueError:
+            if want_page not in str(hit.get("page") or ""):
+                return False
     return True
 
 
@@ -194,11 +200,17 @@ def run_case(service, case: dict, client, kb, store) -> dict:
     rec["has_ground_truth"] = bool(refs or keys)
     evaluation = evaluate_answer(client, question, answer, hits)
     mode = (hits[0].get("retrieval_mode", "") if hits else "")
+    top_hits = [
+        {"doc_path": str(h.get("doc_path") or "")[-80:], "page": h.get("page"),
+         "title": str(h.get("title") or "")[:60], "mode": h.get("retrieval_mode", "")}
+        for h in (hits or [])[:8] if isinstance(h, dict)
+    ]
     return {
         "id": qid, "category": case.get("category"), "question": question,
         "outcome": "answered", "expects_context": case.get("expects_context", True),
         "hits_count": len(hits), "retrieval_mode": mode,
         "recall": rec, "evaluation": evaluation, "latency_ms": latency,
+        "top_hits": top_hits,
     }
 
 
@@ -243,6 +255,8 @@ def main() -> int:
 
     from app.modules.chat.service import ChatService
     import app.modules.chat.service as chat_module
+    from app.core.logging import setup_logging
+    setup_logging()  # سطور retrieval.jsonl التشغيلية تُكتب أثناء القياس
     chat_module._update_teacher_memory = lambda *a, **k: None  # القياس لا يكتب ذاكرة حقيقية
     service = ChatService()
     store = FakeStore()
@@ -259,7 +273,9 @@ def main() -> int:
         "commit": commit,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "question_count": len(out_cases),
-        "config": {"recall_ks": list(KS), "top_kept": 8, "eval": "ragas-gemini"},
+        "config": {"recall_ks": list(KS), "top_kept": 8, "eval": "ragas-gemini",
+                   "matcher": "file-basename+page±2",
+                   "candidate_vs_final": "final-only (trace يحمل أعداداً لا مفاتيح)"},
         "metrics": aggregate(out_cases),
         "cases": out_cases,
     }

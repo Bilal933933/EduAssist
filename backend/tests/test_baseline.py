@@ -27,6 +27,13 @@ def test_match_file_page():
     assert rb.match_ref(_hits()[2], {"file": "part-05.md"}, []) is False
 
 
+def test_page_tolerance():
+    hit = {"doc_key": "x", "doc_path": "references/general/كتاب/part-05.md", "page": 170}
+    assert rb.match_ref(hit, {"file": "part-05.md", "page": "171"}, []) is True
+    assert rb.match_ref(hit, {"file": "part-05.md", "page": "175"}, []) is False
+    assert rb.match_ref(hit, {"file": "part-09.md", "page": "170"}, []) is False
+
+
 def test_recall_at_k():
     refs = [{"file": "part-05.md", "page": "171"}, {"file": "part-11.md", "page": "439"}]
     assert rb.recall_at_k(_hits(), refs, [], 1) == 0.5
