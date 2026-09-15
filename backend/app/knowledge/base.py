@@ -6,9 +6,10 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
 from dotenv import load_dotenv
+from app.core.errors import AppError
 from app.knowledge.vector_service import VectorService
 from app.knowledge.hybrid import rrf_fuse
-from app.agent import extract_scope
+from app.agent.clarifier import extract_scope
 
 load_dotenv()
 
@@ -19,7 +20,7 @@ class KnowledgeBase:
     def __init__(self):
         self.vector_service = VectorService()
         if self.vector_service.count() == 0:
-            raise SystemExit("المتجهات غير مفهرسة. شغّل: python -m app.modules.knowledge_ingestion.infrastructure.cli أولاً")
+            raise AppError("KB_NOT_INDEXED")
 
     def search(self, query_vector, top_k=10, query_text="", scope=None):
         return self.vector_service.search(query_vector, top_k, query_text=query_text, scope=scope)
@@ -36,8 +37,8 @@ class KnowledgeBase:
     ):
         """Cascade retrieval: lexical أولاً، والتضمين والدلالي فقط عند الضعف."""
         resolved_scope = scope or extract_scope(question)
-        candidate_k = max(int(candidate_k), 40)
-        fused_k = max(int(fused_k), 20)
+        candidate_k = max(int(candidate_k), 1)
+        fused_k = max(int(fused_k), 1)
         lexical_hits = self.vector_service.lexical_search(
             question,
             top_k=candidate_k,
@@ -72,3 +73,37 @@ class KnowledgeBase:
             hit["retrieval_scope"] = resolved_scope
             hit["retrieval_mode"] = "hybrid_fallback"
         return fused[:max(1, int(top_k))]
+
+    def hybrid_search_pedagogy(
+        self,
+        question,
+        query_vector=None,
+        top_k=5,
+        scope=None,
+        candidate_k=20,
+        fused_k=10,
+        embed_fn=None,
+    ):
+        """Tier2 تربوي منفصل: source_type=pedagogy + فلتر grade/stage.
+
+        يعيد [] بأمان عندما تكون كتب pedagogy غير مضافة بعد.
+        لا يخلط مع Tier1 — الدمج يكون وسماً فقط عند العرض.
+        """
+        pedagogy_scope = dict(scope or {})
+        pedagogy_scope["source_type"] = "pedagogy"
+        try:
+            hits = self.hybrid_search(
+                question,
+                query_vector,
+                top_k=top_k,
+                scope=pedagogy_scope,
+                candidate_k=candidate_k,
+                fused_k=fused_k,
+                embed_fn=embed_fn,
+            )
+        except Exception:
+            return []
+        for hit in hits or []:
+            hit["retrieval_mode"] = "pedagogy_tier2"
+            hit["retrieval_scope"] = pedagogy_scope
+        return hits or []

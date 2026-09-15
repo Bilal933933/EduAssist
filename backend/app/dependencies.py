@@ -17,6 +17,8 @@ def get_kb() -> KnowledgeBase:
     """قاعدة المعرفة المتجهية — تُهيأ مرة واحدة بشكل كسول (Lazy) لتجنب فشل التشغيل إن لم تكن مفهرسة."""
     try:
         return KnowledgeBase()
+    except AppError:
+        raise
     except SystemExit:
         raise AppError("KB_NOT_INDEXED")
 

@@ -27,11 +27,17 @@ def rrf_fuse(semantic_hits, lexical_hits, top_k=20, k=60, lexical_weight=2.0):
         merged["rrf_score"] = scores[key]
         fused.append(merged)
 
-    # تطبيع similarity إلى [0,1]: الدرجة المعجمية خام وقد تتجاوز 1
+    # تطبيع الدرجات إلى [0,1]: الدرجة المعجمية خام وقد تتجاوز 1.
+    # العقد: كل hit تحمل lexical_norm و similarity موحدتين — البوابات تقرأ الموحدة فقط.
     lex_max = max([float(h.get("lexical_score", 0.0)) for h in fused] + [1.0])
     for merged in fused:
+        try:
+            lex_norm = min(1.0, max(0.0, float(merged.get("lexical_score", 0.0)) / lex_max))
+        except (TypeError, ValueError):
+            lex_norm = 0.0
+        merged["lexical_norm"] = lex_norm
         if "similarity" not in merged:
-            merged["similarity"] = min(1.0, float(merged.get("lexical_score", 0.0)) / lex_max)
+            merged["similarity"] = lex_norm
         else:
             try:
                 merged["similarity"] = min(1.0, max(0.0, float(merged["similarity"])))

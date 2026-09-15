@@ -73,6 +73,7 @@ def rerank_bge(question: str, hits: list, top_k: int = 10) -> list | None:
     got = _loader()
     if got is None:
         return None
+    start = time.time()
     try:
         import torch
         tok, model = got
@@ -87,6 +88,8 @@ def rerank_bge(question: str, hits: list, top_k: int = 10) -> list | None:
                 flat = logits.squeeze(-1).float().tolist()
                 scores.extend(flat if isinstance(flat, list) else [flat])
         order = sorted(range(len(hits)), key=lambda i: -scores[i])
+        elapsed = time.time() - start
+        print(f"[Rerank] BGE time={elapsed:.2f}s hits={len(hits)} batch={_BGE_BATCH}")
         return [hits[i] for i in order[:top_k]]
     except Exception as e:
         print(f"[Rerank BGE skip: {e}]")

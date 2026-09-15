@@ -5,8 +5,15 @@ if hasattr(sys.stdout, "reconfigure"):
 def execute(args: dict, kb, client, inherited_scope=None):
     query = args.get("query", "")
     top_k = int(args.get("top_k", 5))
+    source_type = (args.get("source_type") or "").strip() or None
     from app.agent.chat import embed_question
     try:
+        # Tier2 تربوي: scope منفصل source_type=pedagogy — يعيد [] بأمان إن لم توجد كتب بعد
+        if source_type == "pedagogy":
+            scope = dict(inherited_scope or {})
+            scope["source_type"] = "pedagogy"
+            if hasattr(kb, "hybrid_search_pedagogy"):
+                return kb.hybrid_search_pedagogy(query, None, top_k=top_k, scope=scope, embed_fn=lambda: embed_question(client, query))
         hits = kb.hybrid_search(query, None, top_k=top_k, scope=inherited_scope, candidate_k=40, fused_k=20, embed_fn=lambda: embed_question(client, query))
         return hits
     except Exception as e:
@@ -17,8 +24,10 @@ def format_search_observation(hits: list, max_hits: int = 8, max_chars: int = 60
         return "لا توجد نتائج بحث."
     blocks = []
     for i, hit in enumerate(hits[:max_hits], start=1):
+        kind = "تربوي" if (hit.get("source_type") == "pedagogy" or hit.get("retrieval_mode") == "pedagogy_tier2") else None
         meta = " | ".join(x for x in [
             f"المصدر={hit.get('source') or 'غير محدد'}",
+            "النوع=تربوي" if kind else None,
             f"الصف={hit.get('grade') or 'عام'}",
             f"المادة={hit.get('subject') or 'غير محددة'}",
             f"الفرع={hit.get('branch') or '-'}",

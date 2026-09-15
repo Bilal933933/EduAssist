@@ -14,7 +14,8 @@ def build_teacher_prompt(question, all_hits, history, file_contents, memory_bloc
         seen.add(key)
         src = h.get("source", "مصدر")
         page = f" ص{h.get('page')}" if h.get("page") else ""
-        parts.append(f"[{h.get('title')} - {src}{page}]\n{h.get('text')}")
+        kind = " [تربوي]" if (h.get("source_type") == "pedagogy" or h.get("retrieval_mode") == "pedagogy_tier2") else ""
+        parts.append(f"[{h.get('title')} - {src}{page}{kind}]\n{h.get('text')}")
     for path, content in (file_contents or {}).items():
         parts.append(f"[ملف: {path}]\n{content[:4000]}")
     context = "\n\n---\n\n".join(parts) if parts else "لا يوجد محتوى"
