@@ -1,11 +1,6 @@
 from src.loader.semantic_chunker import split_semantic, chunk_sections_semantic
 from src.knowledge.hybrid import rrf_fuse
-import importlib.util, pathlib
-
-_tool_spec = importlib.util.spec_from_file_location("tools_p1", str(pathlib.Path(__file__).resolve().parents[1] / "src" / "agent" / "tools.py"))
-_tools = importlib.util.module_from_spec(_tool_spec)
-_tool_spec.loader.exec_module(_tools)
-format_search_observation = _tools.format_search_observation
+from app.agent.tools import format_search_observation
 
 
 def _words(n):

@@ -20,7 +20,7 @@ def evaluate(client, question: str, answer: str, hits: list) -> dict:
     context = "\n".join(f"- {h.get('text','')[:250]}" for h in hits[:4])
     prompt = EVAL_PROMPT.format(question=question, answer=answer[:2000], context=context)
     try:
-        from src.agent.fc_client import call_simple
+        from app.agent.fc_client import call_simple
         raw = call_simple(client, prompt, "أنت مقيّم. أجب JSON فقط.")
         m = re.search(r'\{.*\}', raw, re.DOTALL)
         if not m:

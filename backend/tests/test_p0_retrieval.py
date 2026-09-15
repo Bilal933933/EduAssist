@@ -1,5 +1,5 @@
 import importlib.util, pathlib
-_spec = importlib.util.spec_from_file_location("clarifier_p0", str(pathlib.Path(__file__).resolve().parents[1] / "src" / "agent" / "clarifier.py"))
+_spec = importlib.util.spec_from_file_location("clarifier_p0", str(pathlib.Path(__file__).resolve().parents[1] / "app" / "agent" / "clarifier.py"))
 _clarifier = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_clarifier)
 extract_scope = _clarifier.extract_scope

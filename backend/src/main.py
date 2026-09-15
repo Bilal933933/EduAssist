@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from google import genai
 
 try:
-    from src.agent.chat import ask
+    from app.agent.chat import ask
     from src.knowledge.embeddings import embed_question
     from src.knowledge_base import KnowledgeBase
 except ImportError:

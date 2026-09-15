@@ -100,7 +100,7 @@ User(id) - Thread(id, userId, title) - Message(id, threadId, role, content, sour
 
 ```bash
 python src/indexer.py          # فهرسة (مستأنفة، 30-60 دقيقة)
-python src/main.py             # محادثة CLI
+python src/main.py             # محادثة CLI (قديم: يستخدم app.agent.chat الآن)
 cd backend && python main.py   # FastAPI :8000
 cd realtime && npm run build && npm start  # Gateway :3001
 cd frontend && npm run dev     # Next.js

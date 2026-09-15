@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.agent.clarifier import extract_scope
+from app.agent.clarifier import extract_scope
 from src.knowledge.vector_service import VectorService
 
 
