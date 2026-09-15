@@ -59,11 +59,11 @@ content/
 ```
 
 - كل مصدر Markdown مقسم حسب `##` + `## صفحة N`
-- التقسيم: ~700 token + overlap 100 عبر `src/chunker.py` (و `semantic_chunker.py` ~400 للطويل)
+- التقسيم: ~700 token + overlap 100 عبر `app/modules/knowledge_ingestion/infrastructure/loaders/chunker.py` (و `semantic_chunker.py` ~400 للطويل)
 - كل مجلد كتاب يملك `metadata.json` أو `front-matter` يحدد `source_type, stage, grade, subject, branch, book_id`
 - `source_type` مصرح: `textbook | teacher_guide | reference | pedagogy | general` — الفهرسة تحفظه في `knowledge_chunks.source_type`
 - `pedagogy` لا يختلط مع `textbook/reference` في الاسترجاع الافتراضي؛ يُستدعى بفلتر `source_type=pedagogy + stage/grade` لطبقة إعادة الصياغة التربوية
-- بعد تغيير النموذج/الأبعاد: احذف `store/chunks.json` و `store/vectors.npy` ثم `python src/indexer.py`
+- بعد تغيير النموذج/الأبعاد: احذف `store/chunks.json` و `store/vectors.npy` ثم `python -m app.modules.knowledge_ingestion.infrastructure.cli`
 
 ## 6. المتطلبات الوظيفية
 
@@ -83,7 +83,7 @@ content/
 User(id) - Thread(id, userId, title) - Message(id, threadId, role, content, sources) - SourceChunk(id, path, content, embedding vector(768))
  grades(id, code, label_ar, stage) - teachers(id UUID, external_key, display_name) - teacher_grade_assignments - teacher_preferences - teacher_topic_stats - teacher_mistakes_v2 - teacher_lesson_events
 ```
-- الذاكرة M1/M2 مطبقة في `backend/src/storage/teacher_memory.py:142-235` (سبعة جداول + `external_key='default'` + ترحيل v3 + فهارس للبرومبت)
+- الذاكرة M1/M2 مطبقة في `backend/app/storage/teacher_memory.py:142-235` (سبعة جداول + `external_key='default'` + ترحيل v3 + فهارس للبرومبت)
 - جاهز لـ SaaS: إضافة `schoolId/teacherId` nullable لاحقاً (M3: ربط `chat_threads/lessons` بـ `teachers.id + grade_id`)
 - بحث السجل: `pg_trgm` + `tsvector`
 
@@ -99,8 +99,7 @@ User(id) - Thread(id, userId, title) - Message(id, threadId, role, content, sour
 ## 9. أوامر التطوير
 
 ```bash
-python src/indexer.py          # فهرسة (مستأنفة، 30-60 دقيقة)
-python src/main.py             # محادثة CLI (قديم: يستخدم app.agent.chat الآن)
+python -m app.modules.knowledge_ingestion.infrastructure.cli          # فهرسة (مستأنفة، 30-60 دقيقة)
 cd backend && python main.py   # FastAPI :8000
 cd realtime && npm run build && npm start  # Gateway :3001
 cd frontend && npm run dev     # Next.js

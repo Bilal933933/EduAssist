@@ -1,8 +1,8 @@
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
-from src.loader import load_knowledge_sections, load_all_sources
-from src.loader.book_loader import _build_source
+from app.modules.knowledge_ingestion.infrastructure.loaders import load_knowledge_sections, load_all_sources
+from app.modules.knowledge_ingestion.infrastructure.loaders.book_loader import _build_source
 
 def test_load_knowledge_sections():
     import os

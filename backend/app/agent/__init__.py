@@ -11,7 +11,7 @@ from app.agent.fc_client import call_simple, call_with_tools
 from app.agent.generator import build_teacher_prompt
 from app.agent.loop import run_agentic_rag, run_agentic_rag_stream
 from app.agent.prompts import TEACHER_SYSTEM
-from app.agent.reranker import rerank_llm, rerank_local
+from app.agent.reranker import rerank_llm, rerank_local, rerank_bge, rerank_heuristic
 from app.agent.router import get_chitchat_reply, route
 from app.agent.sub_agents import run_sub_agents, synthesize_lesson
 from app.agent.validator import validate_citations
@@ -22,6 +22,7 @@ __all__ = [
     "judge_relevance", "judge_and_filter", "route", "get_chitchat_reply",
     "call_with_tools", "call_simple", "build_teacher_prompt", "build_prompt",
     "ask", "embed_question", "rerank_local", "rerank_llm",
+    "rerank_bge", "rerank_heuristic",
     "run_sub_agents", "synthesize_lesson", "generate_flashcards",
     "generate_quiz", "TEACHER_SYSTEM",
 ]

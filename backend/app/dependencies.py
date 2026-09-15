@@ -4,9 +4,9 @@ from functools import lru_cache
 from app.core.errors import AppError
 from google import genai
 
-from src.storage.chat_store import ChatStore
-from src.knowledge_base import KnowledgeBase
-from src.indexing.indexer_service import IndexerService
+from app.storage.chat_store import ChatStore
+from app.knowledge.base import KnowledgeBase
+from app.modules.knowledge_ingestion.application.indexer_service import IndexerService
 from app.modules.conversation.infrastructure.summary_repository import (
     SummaryRepository,
 )

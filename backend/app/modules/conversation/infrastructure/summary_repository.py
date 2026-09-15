@@ -14,7 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from src.storage.chat_store import CHAT_DB_URL
+from app.storage.chat_store import CHAT_DB_URL
 
 Base = declarative_base()
 

@@ -1,8 +1,8 @@
 import sys
 sys.path.insert(0, '.')
-from src.loader import load_all_sources
-from src.loader.chunker import chunk_sections
-from src.knowledge.vector_service import VectorService
+from app.modules.knowledge_ingestion.infrastructure.loaders import load_all_sources
+from app.modules.knowledge_ingestion.infrastructure.loaders.chunker import chunk_sections
+from app.knowledge.vector_service import VectorService
 import numpy as np
 
 vs = VectorService()

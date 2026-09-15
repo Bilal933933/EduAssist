@@ -5,7 +5,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from unittest.mock import MagicMock
 
-from src.indexing.indexer_service import IndexerService
+from app.modules.knowledge_ingestion.application.indexer_service import IndexerService
 from app.modules.knowledge_ingestion.application.run_indexing_use_case import (
     run_indexing,
 )

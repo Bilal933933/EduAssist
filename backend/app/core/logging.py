@@ -7,6 +7,7 @@
 import logging
 import os
 import re
+import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -92,3 +93,17 @@ def get_logger(name: str) -> logging.Logger:
     if not any(isinstance(f, _RedactingFilter) for f in logger.filters):
         logger.addFilter(_RedactingFilter())
     return logger
+
+
+class Timer:
+    """مؤقت قياس مراحل خط الأنابيب (نُقل من src/core/logger)."""
+
+    def __init__(self, name: str):
+        self.name = name
+        self.start = time.time()
+        self.log = get_logger(name)
+
+    def end(self, extra=""):
+        elapsed = time.time() - self.start
+        self.log.info(f"{self.name} - {elapsed:.2f}s {extra}")
+        return elapsed

@@ -7,7 +7,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from google.genai import types
 
-from src.core.logger import get_logger, Timer
+from app.core.logging import get_logger, Timer
 from app.agent.tools import execute_tool, format_search_observation
 from app.agent.prompts import AGENT_SYSTEM_FC
 from app.agent.fc_client import call_with_tools, call_simple, MODEL_NAME, types as fc_types
@@ -20,7 +20,7 @@ logger = get_logger("agent")
 def _load_memory_block(teacher_id: str = "default", current_grade: str | None = None, current_topic: str | None = None) -> str:
     """يحمّل كتلة ذاكرة المدرس مربوطة بالصف/الموضوع الحالي."""
     try:
-        from src.storage.teacher_memory import TeacherMemoryStore
+        from app.storage.teacher_memory import TeacherMemoryStore
         return TeacherMemoryStore().get_prompt_block(
             teacher_id, current_grade=current_grade, current_topic=current_topic
         )
@@ -133,8 +133,10 @@ def run_agentic_rag(client, kb, question, history=None, max_iterations=4, analys
         timer.end(f"light hits={len(hits)}")
         return answer, hits[:8], trace
 
-    # إذا كان طلب تحضير درس، شغّل 4 وكلاء
-    if "حضر" in question and "درس" in question:
+    # بوابة تحضير الدرس: intent مصنف أولاً، ثم fallback نصي عند غياب التحليل.
+    _intent_prepare = getattr(analysis, "intent", None) if analysis is not None else None
+    _is_prepare = (_intent_prepare == "prepare_lesson") if _intent_prepare else ("حضر" in question and "درس" in question)
+    if _is_prepare:
         try:
             from app.agent.sub_agents import run_sub_agents, synthesize_lesson
             timer = Timer(f"SubAgents: {question[:30]}")
@@ -255,7 +257,7 @@ def run_agentic_rag(client, kb, question, history=None, max_iterations=4, analys
     # استخدام Prompt Composer الجديد إن وجد analysis
     if analysis is not None:
         try:
-            from src.query_analyzer.composer import compose
+            from app.query_analyzer.composer import compose
             ev_text = format_search_observation(all_hits[:8])
             system, user = compose(analysis, evidence_text=ev_text + "\n\n" + "\n".join(f"{_ev_tag(h)} {h.get('text')[:500]}" for h in all_hits[:8]))
             # أضف السياق والملفات للـ user
@@ -296,7 +298,7 @@ def run_agentic_rag(client, kb, question, history=None, max_iterations=4, analys
 
     # Ragas تقييم (لا يؤثر على الإجابة)
     try:
-        from src.evaluation.ragas import evaluate
+        from app.evaluation.ragas import evaluate
         scores = evaluate(client, question, answer, all_hits)
         trace.append({"tool": "ragas", "faith": scores["faithfulness"], "relev": scores["relevance"]})
         logger.info(f"Ragas faith={scores['faithfulness']:.2f} relev={scores['relevance']:.2f}")
@@ -445,7 +447,7 @@ async def run_agentic_rag_stream(client, kb, question, history=None, max_iterati
     yield {"type": "status", "message": "يولد الإجابة..."}
     if analysis is not None:
         try:
-            from src.query_analyzer.composer import compose
+            from app.query_analyzer.composer import compose
             ev_text = format_search_observation(all_hits[:8], max_hits=8, max_chars=600)
             system, user = compose(analysis, evidence_text=ev_text + "\n\n" + "\n".join(f"{_ev_tag(h)} {h.get('text')[:400]}" for h in all_hits[:8]))
             if history:

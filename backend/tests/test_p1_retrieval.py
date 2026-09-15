@@ -1,5 +1,5 @@
-from src.loader.semantic_chunker import split_semantic, chunk_sections_semantic
-from src.knowledge.hybrid import rrf_fuse
+from app.modules.knowledge_ingestion.infrastructure.loaders.semantic_chunker import split_semantic, chunk_sections_semantic
+from app.knowledge.hybrid import rrf_fuse
 from app.agent.tools import format_search_observation
 
 

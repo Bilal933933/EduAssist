@@ -102,7 +102,7 @@ def ask(client, question, hits, history=None):
 def embed_question(client, question):
     """يحول سؤال الطالب إلى متجه عبر سلسلة نماذج التضمين الاحتياطية."""
     try:
-        from src.knowledge.embeddings import embed_texts
+        from app.knowledge.embeddings import embed_texts
     except ImportError:
-        from knowledge.embeddings import embed_texts
+        from app.knowledge.embeddings import embed_texts
     return embed_texts(client, [question])[0]

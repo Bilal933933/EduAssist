@@ -5,13 +5,13 @@ import { IsString, IsOptional, IsArray, IsUUID } from 'class-validator';
  */
 export class CreateLessonDto {
   @IsString()
-  title: string;
+  title!: string;
 
   @IsString()
-  content: string;
+  content!: string;
 
   @IsString()
-  topic: string;
+  topic!: string;
 
   @IsOptional()
   @IsString()

@@ -4,8 +4,8 @@
 ← ترشيح الجديد ← تضمين ← تخزين ← حذف اختياري.
 """
 
-from src.indexing.indexer_service import IndexerService
-from src.knowledge.embeddings import BATCH_SIZE, embed_batches
+from app.modules.knowledge_ingestion.application.indexer_service import IndexerService
+from app.knowledge.embeddings import BATCH_SIZE, embed_batches
 
 
 def run_indexing(indexer: IndexerService, client, prune: bool = False,

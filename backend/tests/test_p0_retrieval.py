@@ -3,8 +3,8 @@ _spec = importlib.util.spec_from_file_location("clarifier_p0", str(pathlib.Path(
 _clarifier = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_clarifier)
 extract_scope = _clarifier.extract_scope
-from src.loader.book_loader import decode_encoded_name, _parse_front_matter
-from src.knowledge.hybrid import rrf_fuse
+from app.modules.knowledge_ingestion.infrastructure.loaders.book_loader import decode_encoded_name, _parse_front_matter
+from app.knowledge.hybrid import rrf_fuse
 
 
 def test_extract_primary_grade_and_subject():
@@ -35,7 +35,7 @@ def test_front_matter_preserved():
 
 
 def test_scope_where_clause_compiles_grade_and_subject():
-    from src.knowledge.search import _where_clause
+    from app.knowledge.search import _where_clause
     clause = _where_clause({"grade": "primary_5", "subject": "اللغة العربية"})
     sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
     assert "grade" in sql

@@ -73,11 +73,11 @@
     "command": {
         "index": {
             "description": "Run knowledge indexer (resumable)",
-            "template": "cd backend && python src/indexer.py $ARGUMENTS"
+            "template": "cd backend && python -m app.modules.knowledge_ingestion.infrastructure.cli $ARGUMENTS"
         },
         "chat": {
             "description": "Start interactive CLI chat",
-            "template": "cd backend && python src/main.py $ARGUMENTS"
+            "template": "cd backend && python main.py $ARGUMENTS"
         },
         "dev:backend": {
             "description": "Start FastAPI backend with reload",

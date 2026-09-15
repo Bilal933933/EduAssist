@@ -3,7 +3,7 @@
 الـ Router يمرر فقط. كل استدعاءات المخزن الـ 10 كانت في الـ endpoint
 أصبحت هنا: تحقق ← مخزن ← نتيجة.
 """
-from src.storage.teacher_memory import TeacherMemoryStore
+from app.storage.teacher_memory import TeacherMemoryStore
 
 from app.core.validation import validate_teacher_id
 from app.modules.cards.validation import validate_topic

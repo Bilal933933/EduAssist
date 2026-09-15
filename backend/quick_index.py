@@ -4,10 +4,10 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 from google import genai
-from src.loader import load_all_sources
-from src.loader.chunker import chunk_sections
-from src.knowledge.embeddings import embed_batches, BATCH_SIZE
-from src.knowledge.vector_service import VectorService
+from app.modules.knowledge_ingestion.infrastructure.loaders import load_all_sources
+from app.modules.knowledge_ingestion.infrastructure.loaders.chunker import chunk_sections
+from app.knowledge.embeddings import embed_batches, BATCH_SIZE
+from app.knowledge.vector_service import VectorService
 vs=VectorService()
 client=genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 sections=load_all_sources()

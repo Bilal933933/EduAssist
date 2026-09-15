@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.agent.clarifier import extract_scope
-from src.knowledge.vector_service import VectorService
+from app.knowledge.vector_service import VectorService
 
 
 def run(queries_path: Path, out_path: Path, top_k: int) -> int:

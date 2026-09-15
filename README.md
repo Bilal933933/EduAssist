@@ -69,10 +69,9 @@ pip install -r requirements.txt
 cp .env.example .env
 
 # 3. فهرسة قاعدة المعرفة (مرة واحدة، أو بعد تعديل المعرفة)
-python src/indexer.py
+python -m app.modules.knowledge_ingestion.infrastructure.cli
 
-# 4. تشغيل المساعد (المعتمد: `app/agent/` — و `src/main.py` يعيد التوجيه إليه)
-python src/main.py
+# 4. تشغيل المساعد (المعتمد: `app/agent/` — و `backend/main.py` للـ API)
 ```
 
 ## مثال حي
@@ -97,7 +96,7 @@ python src/main.py
 ثانية قاعدة في الباب.
 ```
 
-ثم أعد الفهرسة: `python src/indexer.py` — لا حاجة لتغيير أي كود.
+ثم أعد الفهرسة: `python -m app.modules.knowledge_ingestion.infrastructure.cli` — لا حاجة لتغيير أي كود.
 
 ## ما الفرق عن النموذج الصغير في `E:\heard\ai`؟
 | | النموذج الصغير | هذا المشروع |

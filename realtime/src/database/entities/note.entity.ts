@@ -19,30 +19,30 @@ import { LessonEntity } from './lesson.entity';
 @Unique(['lessonId'])
 export class NoteEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column('uuid')
-  lessonId: string;
+  lessonId!: string;
 
   @Column('uuid')
-  teacherId: string;
+  teacherId!: string;
 
   @Column('text', { nullable: true })
-  content: string; // محتوى الملاحظة
+  content!: string; // محتوى الملاحظة
 
   @Column('boolean', { default: false })
-  isPinned: boolean;
+  isPinned!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // العلاقة مع Lesson
   @ManyToOne(() => LessonEntity, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'lessonId' })
-  lesson: LessonEntity;
+  lesson!: LessonEntity;
 }

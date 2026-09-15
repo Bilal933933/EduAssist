@@ -5,7 +5,7 @@ from app.knowledge.retrieval_log import log_retrieval
 from app.modules.chat.validation import validate_question
 from app.dependencies import get_summary_repo
 from app.agent import call_simple, get_chitchat_reply, route, run_agentic_rag, run_agentic_rag_stream
-from src.query_analyzer.analyzer import analyze
+from app.query_analyzer.analyzer import analyze
 from app.modules.tutor_orchestrator.application.route_message_use_case import (
     resolve_module,
 )
@@ -39,7 +39,7 @@ def _direct_answer(question: str, client) -> str:
 def _update_teacher_memory(analysis, question: str, teacher_id: str = "default"):
     """يحدّث ذاكرة المدرس بعد تفاعل ناجح (لا يرفع استثناء للخارج)."""
     try:
-        from src.storage.teacher_memory import TeacherMemoryStore
+        from app.storage.teacher_memory import TeacherMemoryStore
 
         grade = None
         topic = None
@@ -100,7 +100,7 @@ class ChatService:
         state = summary_repo.get(thread_id)
         history = store.recent_history(thread_id)
         try:
-            from src.storage.teacher_memory import TeacherMemoryStore
+            from app.storage.teacher_memory import TeacherMemoryStore
 
             memory_block = TeacherMemoryStore().get_prompt_block(teacher_id) or ""
         except Exception:
@@ -146,7 +146,7 @@ class ChatService:
                 if not last_q:
                     last_q = next((t for r, t in reversed(hist) if r == "user"), "")
                 if last_q:
-                    from src.query_analyzer.analyzer import analyze as _a
+                    from app.query_analyzer.analyzer import analyze as _a
                     ctx_analysis = _a(last_q)
                     context = {
                         "grade": ctx_analysis.scope.grade.value,
@@ -248,7 +248,7 @@ class ChatService:
             if not last_q:
                 last_q = next((t for r, t in reversed(history) if r == "user"), "")
             if last_q:
-                from src.query_analyzer.analyzer import analyze as _a
+                from app.query_analyzer.analyzer import analyze as _a
                 ctx_a = _a(last_q)
                 context = {
                     "grade": ctx_a.scope.grade.value,

@@ -164,7 +164,7 @@ def evaluate_answer(client, question: str, answer: str, hits: list) -> dict:
     if client is None:
         return {"status": "skipped", "faithfulness": None, "relevance": None, "reason": "no-client"}
     try:
-        from src.evaluation.ragas import evaluate
+        from app.evaluation.ragas import evaluate
         scores = evaluate(client, question, answer, hits)
         return {
             "status": "success",
@@ -234,7 +234,7 @@ def main() -> int:
     kb = None
     if not args.check:
         from google import genai
-        from src.knowledge_base import KnowledgeBase
+        from app.knowledge.base import KnowledgeBase
         api_key = os.getenv("GEMINI_API_KEY", "")
         if not api_key:
             print("GEMINI_API_KEY مفقود — شغل --check للفحص أو جهز المفتاح")
@@ -244,7 +244,7 @@ def main() -> int:
         print(f"KB chunks: {kb.vector_service.count()}")
     else:
         try:
-            from src.knowledge_base import KnowledgeBase
+            from app.knowledge.base import KnowledgeBase
             print(f"KB chunks: {KnowledgeBase().vector_service.count()}")
         except SystemExit as e:
             print(f"KB غير مفهرسة: {e}")

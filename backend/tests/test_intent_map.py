@@ -9,7 +9,7 @@ from app.modules.tutor_orchestrator.application.route_message_use_case import (
     resolve_module,
 )
 from app.modules.tutor_orchestrator.domain.intent import ModuleIntent
-from src.query_analyzer.analyzer import INTENTS, analyze
+from app.query_analyzer.analyzer import INTENTS, analyze
 
 
 def test_all_analyzer_intents_covered():

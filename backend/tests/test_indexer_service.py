@@ -4,10 +4,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from unittest.mock import patch
 
-with patch("src.knowledge.vector_service.VectorService.__init__", lambda self, db_url=None: None):
-    import src.indexer as legacy
-
-from src.indexing.indexer_service import IndexerService
+from app.modules.knowledge_ingestion.application.indexer_service import IndexerService
 
 
 class FakeVS:
@@ -43,25 +40,26 @@ def _sample_chunks():
     ]
 
 
-def test_embedding_text_parity_with_legacy():
-    """تكافؤ سلوكي: نفس المدخلات ← نفس النص المضمَّن حرفياً."""
+def test_embedding_text_includes_hierarchy():
+    """نص التضمين غني بالهرمية: سياق + عنوان + مصدر + نص."""
     svc = IndexerService(vector_service=FakeVS())
-    for chunk in _sample_chunks():
-        assert svc.embedding_text(chunk) == legacy._embedding_text(chunk)
+    chunk = _sample_chunks()[0]
+    text = svc.embedding_text(chunk)
+    assert "الفاعل اسم مرفوع" in text
+    assert "اللغة العربية" in text
+    assert "الفاعل" in text
 
 
-def test_load_progress_parity_with_legacy(monkeypatch):
-    """تكافؤ الاستئناف: (count, keys) بنفس الدلالة."""
+def test_load_progress_returns_count_and_keys():
+    """الاستئناف: (count, keys) بنفس الدلالة."""
     fake = FakeVS(count=7, keys={"a", "b"})
-    monkeypatch.setattr(legacy, "vector_service", fake)
     svc = IndexerService(vector_service=fake)
-    assert svc.load_progress() == legacy._load_progress() == (7, {"a", "b"})
+    assert svc.load_progress() == (7, {"a", "b"})
 
 
-def test_prune_stale_delegates_to_store(monkeypatch):
+def test_prune_stale_delegates_to_store():
     """prune_stale تمريرة رقيقة فوق prune_not_in الموجود."""
     fake = FakeVS(pruned=3)
-    monkeypatch.setattr(legacy, "vector_service", fake)
     svc = IndexerService(vector_service=fake)
     active = {"k1", "k2"}
     assert svc.prune_stale(active) == 3

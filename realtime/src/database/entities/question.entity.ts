@@ -16,50 +16,50 @@ import { LessonEntity } from './lesson.entity';
  */
 
 @Entity('generated_questions')
-@Index('idx_teacher_id', ['teacherId'])
-@Index('idx_lesson_id', ['lessonId'])
-@Index('idx_difficulty', ['difficulty'])
+@Index('idx_questions_teacher_id', ['teacherId'])
+@Index('idx_questions_lesson_id', ['lessonId'])
+@Index('idx_questions_difficulty', ['difficulty'])
 export class QuestionEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column('uuid', { nullable: true })
-  lessonId: string; // معرف الدرس (اختياري)
+  lessonId!: string; // معرف الدرس (اختياري)
 
   @Column('uuid')
-  teacherId: string; // معرف المعلم
+  teacherId!: string; // معرف المعلم
 
   @Column('text')
-  questionText: string; // نص السؤال
+  questionText!: string; // نص السؤال
 
   @Column('varchar', { length: 50 })
-  type: 'multiple_choice' | 'essay' | 'true_false' | 'fill_blank';
+  type!: 'multiple_choice' | 'essay' | 'true_false' | 'fill_blank';
 
   @Column('varchar', { length: 50 })
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty!: 'easy' | 'medium' | 'hard';
 
   @Column('varchar', { length: 100 })
-  topic: string; // "الفاعل", "النعت", إلخ
+  topic!: string; // "الفاعل", "النعت", إلخ
 
   // الخيارات (JSON)
   // مثال: { "A": "الضمة", "B": "الفتحة", "C": "الكسرة", "D": "السكون" }
   @Column('jsonb', { nullable: true })
-  options: Record<string, string>;
+  options!: Record<string, string>;
 
   @Column('text')
-  correctAnswer: string; // "A" أو "الضمة"
+  correctAnswer!: string; // "A" أو "الضمة"
 
   @Column('text')
-  explanation: string; // شرح الإجابة الصحيحة
+  explanation!: string; // شرح الإجابة الصحيحة
 
   @Column('boolean', { default: false })
-  isUsed: boolean; // هل استُخدمت في اختبار
+  isUsed!: boolean; // هل استُخدمت في اختبار
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // العلاقة مع Lesson
   @ManyToOne(() => LessonEntity, {
@@ -67,5 +67,5 @@ export class QuestionEntity {
     nullable: true,
   })
   @JoinColumn({ name: 'lessonId' })
-  lesson: LessonEntity;
+  lesson!: LessonEntity;
 }

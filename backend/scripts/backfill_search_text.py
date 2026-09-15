@@ -3,9 +3,9 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sqlalchemy import func, select
-from src.knowledge.models import KnowledgeChunk
-from src.knowledge.search import _normalize_arabic
-from src.knowledge.store import VectorStore
+from app.models.knowledge_chunk import KnowledgeChunk
+from app.knowledge.search import _normalize_arabic
+from app.knowledge.store import VectorStore
 
 BATCH = 500
 vs = VectorStore()

@@ -114,7 +114,6 @@ export class CreateLessonsTablesNotesQuestionsAndIndices1693555200000
         name: 'idx_lessons_created_at',
         columnNames: ['createdAt'],
         isUnique: false,
-        sort: 'DESC',
       })
     );
 

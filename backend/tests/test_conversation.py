@@ -104,7 +104,7 @@ def test_summary_failure_does_not_break_conversation():
     with patch.object(svc, "maybe_update_summary", side_effect=RuntimeError("429")), \
         patch.object(svc, "continue_conversation", return_value="أهلاً بك"), \
         patch.object(svc, "get_summary_repo") as repo_factory, \
-        patch("src.storage.teacher_memory.TeacherMemoryStore"):
+        patch("app.storage.teacher_memory.TeacherMemoryStore"):
         repo_factory.return_value.get.return_value = {
             "summary": "", "summarized_upto_msg_id": 0,
         }

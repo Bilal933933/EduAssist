@@ -1,4 +1,5 @@
-"""النماذج — SQLAlchemy. التخزين الفعلي حالياً في src/storage؛ هذا الملف نقطة التوسع SaaS."""
+"""النماذج — SQLAlchemy، نقطة التوسع SaaS."""
 from app.db.base import Base  # noqa: F401 — يُصدَّر للترحيلات القادمة
+from app.models.knowledge_chunk import KnowledgeChunk  # noqa: F401
 
-__all__ = ["Base"]
+__all__ = ["Base", "KnowledgeChunk"]

@@ -13,14 +13,18 @@
     "@nestjs/core": "^11",
     "@nestjs/platform-express": "^11",
     "@nestjs/platform-socket.io": "^11",
+    "@nestjs/typeorm": "^11.0.3",
     "@nestjs/websockets": "^11",
     "axios": "^1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.4",
     "dotenv": "^16",
     "jsonwebtoken": "^9",
     "pg": "^8",
     "reflect-metadata": "^0.2",
     "rxjs": "^7",
-    "socket.io": "^4"
+    "socket.io": "^4",
+    "typeorm": "^0.3.31"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

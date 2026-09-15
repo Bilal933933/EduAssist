@@ -34,6 +34,6 @@ def test_validator_hallucination():
         assert "لا يوجد" in corrected
 
 def test_chat_store():
-    from src.storage.chat_store import ChatStore
+    from app.storage.chat_store import ChatStore
     import tempfile, os
     assert ChatStore is not None
