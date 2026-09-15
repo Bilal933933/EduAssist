@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from google import genai
 
-from app.core.errors import AppError
+from app.core.errors import AppError, code_for, message_for
 from app.core.response import ok
 from app.core.validation import validate_teacher_id, validate_thread_id
 from app.dependencies import get_gemini_client, get_kb, get_store
@@ -37,8 +37,8 @@ async def chat_endpoint(
         return ok(result)
     except AppError:
         raise
-    except Exception:
-        raise AppError("INTERNAL_ERROR")
+    except Exception as exc:
+        raise AppError(code_for(exc))
 
 
 @router.post("/chat/stream")
@@ -74,13 +74,15 @@ async def chat_stream_endpoint(
                     suffix = "" if completed else " [انقطع - حاول مرة أخرى]"
                     store.add_message(thread_id, "assistant", full_answer + suffix, sources=hits)
                 yield f"data: {json.dumps({'type': 'thread', 'thread_id': thread_id}, ensure_ascii=False)}\n\n"
-            except Exception:
+            except Exception as exc:
                 if full_answer and not already_stored:
                     store.add_message(thread_id, "assistant", full_answer + " [خطأ - Retry]", sources=hits)
-                yield f"data: {json.dumps({'type': 'error', 'error': {'code': 'INTERNAL_ERROR', 'message': 'حدث خطأ داخلي. حاول مرة أخرى.'}, 'partial': full_answer[:200]}, ensure_ascii=False)}\n\n"
+                code = code_for(exc)
+                _, message = message_for(code)
+                yield f"data: {json.dumps({'type': 'error', 'error': {'code': code, 'message': message}, 'partial': full_answer[:200]}, ensure_ascii=False)}\n\n"
 
         return StreamingResponse(event_generator(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
     except AppError:
         raise
-    except Exception:
-        raise AppError("INTERNAL_ERROR")
+    except Exception as exc:
+        raise AppError(code_for(exc))

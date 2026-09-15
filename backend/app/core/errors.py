@@ -25,8 +25,16 @@ ERROR_MAP: dict[str, tuple[int, str]] = {
     "KB_NOT_INDEXED": (500, "قاعدة البيانات المتجهية غير مفهرسة. شغّل الفهرسة أولاً."),
     "GEMINI_KEY_MISSING": (500, "مفتاح Gemini غير مجهز في الإعدادات."),
     "AI_UNREACHABLE": (502, "خدمة الذكاء الاصطناعي لا تستجيب. حاول لاحقاً."),
+    "QUOTA_EXHAUSTED": (429, "ضغط مؤقت على خدمة الذكاء الاصطناعي. انتظر قليلاً ثم اضغط Retry."),
     "REINDEX_FAILED": (500, "فشلت إعادة الفهرسة. حاول مرة أخرى."),
 }
+
+
+def code_for(error: BaseException) -> str:
+    """يصنف استثناءً غير متوقع لرمز خطأ: 429 من Google تعني نفاد حصة مؤقتاً."""
+    if getattr(error, "code", None) == 429:
+        return "QUOTA_EXHAUSTED"
+    return "INTERNAL_ERROR"
 
 
 def message_for(code: str) -> tuple[int, str]:
