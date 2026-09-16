@@ -88,6 +88,8 @@ class VectorStore:
                 select(KnowledgeChunk).where(KnowledgeChunk.doc_key == doc_key)
             ).scalar_one_or_none()
             values = self._metadata_values(chunk)
+            if not values["subject"]:
+                print(f"[ingest warn] subject مفقود للمصدر: {chunk.get('source') or chunk.get('doc_path') or '?'}")
             stext = self._search_text(chunk)
             if existing:
                 existing.doc_path = chunk.get("doc_path", existing.doc_path)

@@ -28,6 +28,7 @@ export const ERROR_MAP: Record<string, { status: number; message: string }> = {
   KB_NOT_INDEXED: { status: 500, message: "قاعدة البيانات المتجهية غير مفهرسة. شغّل الفهرسة أولاً." },
   GEMINI_KEY_MISSING: { status: 500, message: "مفتاح Gemini غير مجهز في الإعدادات." },
   AI_UNREACHABLE: { status: 502, message: "خدمة الذكاء الاصطناعي لا تستجيب. حاول لاحقاً." },
+  QUOTA_EXHAUSTED: { status: 429, message: "ضغط مؤقت على خدمة الذكاء الاصطناعي. انتظر قليلاً ثم اضغط Retry." },
   REINDEX_FAILED: { status: 500, message: "فشلت إعادة الفهرسة. حاول مرة أخرى." },
 };
 

@@ -16,7 +16,10 @@ def build_conversation_context(summary: str, history: list, memory_block: str) -
     """يركّب سياقاً نصياً واحداً من المكونات الثلاثة — بلا أي استدعاء."""
     parts = []
     if memory_block:
-        parts.append(memory_block)
+        parts.append(
+            "[ذاكرة سابقة عن تفاعلات المدرس — ثانوية، قد تخص صفاً أو موضوعاً آخر، "
+            "لا تعتبرها حقائق عن الرسالة الحالية]\n" + memory_block
+        )
     if summary:
         parts.append("[ملخص ما سبق من المحادثة]\n" + summary)
     if history:

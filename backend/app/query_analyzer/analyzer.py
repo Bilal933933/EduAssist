@@ -44,6 +44,39 @@ PARSE_KEYWORDS = [
     "ما إعراب", "ما اعراب", "اعراب الجملة", "إعراب الجملة",
 ]
 
+# إشارات أكاديمية تمنع تصنيف الرسالة القصيرة كدردشة (نية/مصطلح/فرع).
+_ACADEMIC_SIGNALS = (
+    "حضر", "درس", "خطة", "تحضير", "تدريب", "تمارين", "اختبار", "امتحان",
+    "أعرب", "اعرب", "إعراب", "اعراب", "اشرح", "شرح", "صحح", "راجع", "مراجعة",
+    "قارن", "الفرق", "نحو", "صرف", "بلاغة", "إملاء", "املاء", "قراءة", "تعبير", "قواعد",
+)
+
+# أدوات استفهام (مطابقة توكن كامل لا substring حتى لا تلتقط "معاك").
+# محدودية معروفة: لهجات غير مغطاة (وين/ليش خليجية-شامية، كام/چم، شلون...)
+# — تُضاف عند اتساع الجمهور beyond المصرية.
+_INTERROGATIVE_WORDS = frozenset([
+    "ليه", "لماذا", "امتى", "متى", "ازاي", "ازاى", "كيف",
+    "فين", "اين", "أين", "كم", "هل", "ماذا", "مين",
+])
+# "يعني" وحدها حشو دردشة ("يعني تمام") — الاستفهام هو العبارة المجاورة فقط.
+_INTERROGATIVE_PHRASE = re.compile(r"يعني\s+(ايه|إيه|آيه|أيه)")
+
+
+def _tokens(q: str) -> list[str]:
+    return re.findall(r"[\w\u0600-\u06FF]+", q or "")
+
+
+def _has_academic_signal(q: str) -> bool:
+    if any(t in q for t in TOPIC_KEYWORDS):
+        return True
+    return any(s in q for s in _ACADEMIC_SIGNALS)
+
+
+def _has_interrogative(q: str) -> bool:
+    if set(_tokens(q)) & _INTERROGATIVE_WORDS:
+        return True
+    return bool(_INTERROGATIVE_PHRASE.search(q or ""))
+
 def _is_chitchat(q: str) -> bool:
     qs = q.strip()
     if len(qs) <= 30 and any(p in qs for p in CHITCHAT_PATTERNS):
@@ -178,6 +211,18 @@ def analyze(question: str, context: dict | None = None) -> QueryAnalysis:
                     return analyze(prev_q, context)
     intent = _detect_intent(question)
     scope = _extract_scope(question, context)
+    # دردشة قصيرة بلا محتوى أكاديمي (دردشة/تعال نتكلم شوي): general + نطاق
+    # فارغ + قصيرة + بلا إشارات أكاديمية ولا أداة استفهام (الاستفهام — بسؤاله
+    # أو بدونه — يبقى طلباً: ليه بنقول كذا، امتى نستخدم إن).
+    if (
+        intent == "general_question"
+        and not scope.topic
+        and not scope.grade.value
+        and len(q_stripped) < 30
+        and not _has_academic_signal(q_stripped)
+        and not _has_interrogative(q_stripped)
+    ):
+        intent = "chitchat"
     # إذا كان السؤال قصير وبلا موضوع لكن السياق يحمل موضوعاً، استعره
     if not scope.topic and context and context.get("topic") and len(q_stripped) < 15:
         scope.topic = context["topic"]

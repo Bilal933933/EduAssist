@@ -7,7 +7,6 @@ from sqlalchemy import (
     BigInteger,
     Column,
     DateTime,
-    ForeignKey,
     Text,
     create_engine,
     func,
@@ -24,9 +23,9 @@ class ConversationSummary(Base):
 
     __tablename__ = "conversation_summaries"
 
-    thread_id = Column(
-        BigInteger, ForeignKey("chat_threads.id", ondelete="CASCADE"), primary_key=True
-    )
+    # بلا ForeignKey: هذا الـ Base مستقل عن chat_store (وجود thread يُضمن
+    # على مستوى التطبيق عبر ensure_thread_exists قبل أي استعمال).
+    thread_id = Column(BigInteger, primary_key=True)
     summary = Column(Text, nullable=False, default="")
     summarized_upto_msg_id = Column(BigInteger, nullable=False, default=0)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

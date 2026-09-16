@@ -32,8 +32,19 @@ ERROR_MAP: dict[str, tuple[int, str]] = {
 
 def code_for(error: BaseException) -> str:
     """يصنف استثناءً غير متوقع لرمز خطأ: 429 من Google تعني نفاد حصة مؤقتاً."""
-    if getattr(error, "code", None) == 429:
-        return "QUOTA_EXHAUSTED"
+    for attr in ("code", "status", "status_code"):
+        try:
+            value = getattr(error, attr, None)
+            if value is not None and str(value) == "429":
+                return "QUOTA_EXHAUSTED"
+        except Exception:
+            pass
+    try:
+        text = str(error).lower()
+        if "429" in text or "quota" in text or "resource_exhausted" in text or "resource exhausted" in text:
+            return "QUOTA_EXHAUSTED"
+    except Exception:
+        pass
     return "INTERNAL_ERROR"
 
 

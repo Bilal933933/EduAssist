@@ -36,7 +36,11 @@ class KnowledgeBase:
         embed_fn=None,
     ):
         """Cascade retrieval: lexical أولاً، والتضمين والدلالي فقط عند الضعف."""
-        resolved_scope = scope or extract_scope(question)
+        resolved_scope = dict(scope or extract_scope(question) or {})
+        # بلا subject محلل: عربية افتراضياً (NULL تُعامل كعربية في _where_clause).
+        # يمنع تسرب مواد أخرى (إنجليزية/علوم) لأسئلة بلا نطاق.
+        if not resolved_scope.get("subject"):
+            resolved_scope["subject"] = "اللغة العربية"
         candidate_k = max(int(candidate_k), 1)
         fused_k = max(int(fused_k), 1)
         lexical_hits = self.vector_service.lexical_search(

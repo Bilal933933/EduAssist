@@ -72,6 +72,83 @@ def _update_teacher_memory(analysis, question: str, teacher_id: str = "default")
         get_logger("app").debug(f"TeacherMemory update skip: {e}")
 
 
+_FILLER_QUESTIONS = frozenset([
+    "؟", "?", "؟؟", "الخامس", "السادس", "الرابع",
+    "الخامس الابتدائي", "السادس", "الأول", "الثاني", "الثالث",
+])
+
+# ردود إقرار قصيرة: جواب على سؤال المساعد السابق (نعم/لا/تمام...)
+# — تُفهم من سياق الحوار فقط، لا من المصادر.
+_SHORT_ACKS = frozenset([
+    "لا", "لأ", "نعم", "اجل", "أجل", "تمام", "طيب", "حسنا", "حسناً",
+    "اكيد", "أكيد", "ماشي", "موافق", "تماما", "تماماً", "حاضر",
+    "كمل", "أكمل", "اكمل", "تابع", "ok",
+])
+
+
+def _is_short_ack(question: str) -> bool:
+    """رد قصير (≤12 حرفاً) من قائمة الإقرارات المغلقة بعد تجريد علامات الترقيم."""
+    q = (question or "").strip().strip("؟?!.…-ـ ").strip()
+    return bool(q) and len(q) <= 12 and q in _SHORT_ACKS
+
+
+def _build_context(history: list) -> dict:
+    """سياق المحلل من كامل السجل — لا من آخر سؤال فقط.
+
+    يمسح رسائل المدرس من الأحدث للأقدم ويجمع: الموضوع (أقرب حامل له)
+    + الصف/المرحلة (أقرب حامل لهما) + النية (من أحدث رسالة غير حشو).
+    لخيط من رسالة واحدة يطابق السلوك القديم تماماً.
+    """
+    from app.query_analyzer.analyzer import analyze as _a
+
+    user_msgs = [t for r, t in (history or []) if r == "user"]
+    if not user_msgs:
+        return {}
+    prev_q = next(
+        (t for t in reversed(user_msgs) if t.strip() not in _FILLER_QUESTIONS), ""
+    )
+    if not prev_q:
+        prev_q = user_msgs[-1]
+    topic = grade = stage = subject = branch = intent = None
+    for msg in reversed(user_msgs):
+        try:
+            a = _a(msg)
+        except Exception:
+            continue
+        if topic is None:
+            topic = a.scope.topic or (a.topics[0] if a.topics else None)
+            if topic is not None:
+                if subject is None and a.scope.subject.value:
+                    subject = a.scope.subject.value
+                if branch is None and a.scope.branch.value:
+                    branch = a.scope.branch.value
+        if grade is None and a.scope.grade.value:
+            grade = a.scope.grade.value
+            stage = a.scope.stage.value
+            subject = a.scope.subject.value
+            branch = a.scope.branch.value
+        if intent is None and msg.strip() == prev_q.strip():
+            intent = a.intent
+        if topic is not None and grade is not None and intent is not None:
+            break
+    if intent is None:
+        try:
+            intent = _a(prev_q).intent
+        except Exception:
+            intent = None
+    if not any([topic, grade, intent]):
+        return {}
+    return {
+        "grade": grade,
+        "stage": stage,
+        "subject": subject,
+        "branch": branch,
+        "topic": topic,
+        "intent": intent,
+        "prev_question": prev_q,
+    }
+
+
 def _resolve(question: str, context: dict):
     """نقطة التوجيه الوحيدة: analyze ← module ← mode.
 
@@ -87,10 +164,15 @@ class ChatService:
     """Feature service — analyzer → clarify → retrieval → compose → LLM."""
 
     async def _run_conversation(
-        self, question: str, thread_id, client, store, teacher_id: str = "default"
+        self, question: str, thread_id, client, store, teacher_id: str = "default",
+        skip_memory: bool = False,
     ):
         """النواة المشتركة لمسار المحادثة (عادي + بث): ملخص تراكمي ← سياق
-        (حديث + نبرة المدرس قراءة فقط) ← توليد ← تخزين. تعيد (answer, thread_id)."""
+        (حديث + نبرة المدرس قراءة فقط) ← توليد ← تخزين. تعيد (answer, thread_id).
+
+        skip_memory للتحيات (chitchat): الذاكرة لا تنفعها ومصدر هلوسة
+        (صف/موضوع من خيوط أخرى يتسرب للتحية).
+        """
         summary_repo = get_summary_repo()
         try:
             # التلخيص تحسين ثانوي (تدهور رشيق): فشله لا يوقف الرد الأساسي.
@@ -99,12 +181,14 @@ class ChatService:
             pass
         state = summary_repo.get(thread_id)
         history = store.recent_history(thread_id)
-        try:
-            from app.storage.teacher_memory import TeacherMemoryStore
+        memory_block = ""
+        if not skip_memory:
+            try:
+                from app.storage.teacher_memory import TeacherMemoryStore
 
-            memory_block = TeacherMemoryStore().get_prompt_block(teacher_id) or ""
-        except Exception:
-            memory_block = ""
+                memory_block = TeacherMemoryStore().get_prompt_block(teacher_id) or ""
+            except Exception:
+                memory_block = ""
         answer = continue_conversation(
             client, question, history, state["summary"], memory_block
         )
@@ -133,41 +217,26 @@ class ChatService:
             ensure_thread_exists(store, thread_id)
         context = {}
         if thread_id is not None:
-            hist = store.recent_history(thread_id)
-            if hist:
-                last_q = ""
-                for r, t in reversed(hist):
-                    if r == "user" and t.strip() not in [
-                        "؟", "?", "؟؟", "الخامس", "السادس", "الرابع",
-                        "الخامس الابتدائي", "السادس", "الأول", "الثاني", "الثالث",
-                    ]:
-                        last_q = t
-                        break
-                if not last_q:
-                    last_q = next((t for r, t in reversed(hist) if r == "user"), "")
-                if last_q:
-                    from app.query_analyzer.analyzer import analyze as _a
-                    ctx_analysis = _a(last_q)
-                    context = {
-                        "grade": ctx_analysis.scope.grade.value,
-                        "stage": ctx_analysis.scope.stage.value,
-                        "subject": ctx_analysis.scope.subject.value,
-                        "branch": ctx_analysis.scope.branch.value,
-                        "topic": ctx_analysis.scope.topic
-                        or (ctx_analysis.topics[0] if ctx_analysis.topics else None),
-                        "intent": ctx_analysis.intent,
-                        "prev_question": last_q,
-                    }
+            context = _build_context(store.recent_history(thread_id))
         # المرحلة 1: module محسوب وموثق فقط — كل الوحدات تستخدم
         # السلوك الحالي نفسه (صفر تغيير سلوكي).
         # TODO(المرحلة 2): توجيه GRAMMAR/CONVERSATION لوحداتهما.
         analysis, module, mode = _resolve(question, context)
         _ = module
+        # رد قصير داخل خيط قائم (لا/نعم/تمام): جواب على سؤال المساعد السابق
+        # — يُجاب من سياق الحوار لا من المصادر.
+        if (
+            thread_id is not None
+            and module is ModuleIntent.LESSON_KNOWLEDGE
+            and _is_short_ack(question)
+        ):
+            module = ModuleIntent.CONVERSATION_PRACTICE
         # المحادثة داخل thread قائم فقط — الجديدة تسقط للمسار المباشر الحالي.
         # (resolve_module نقية: نية ← وحدة؛ شرط السياق هنا في طبقة التنسيق)
         if module is ModuleIntent.CONVERSATION_PRACTICE and thread_id is not None:
             answer, thread_id = await self._run_conversation(
-                question, thread_id, client, store, teacher_id
+                question, thread_id, client, store, teacher_id,
+                skip_memory=(analysis.intent == "chitchat" or _is_short_ack(question)),
             )
             return build_conversation_result(answer, thread_id)
         if mode == "direct":
@@ -235,36 +304,22 @@ class ChatService:
             ensure_thread_exists(store, thread_id)
         is_new = thread_id is None
         history = store.recent_history(thread_id) if thread_id is not None else []
-        context = {}
-        if thread_id is not None and history:
-            last_q = ""
-            for r, t in reversed(history):
-                if r == "user" and t.strip() not in [
-                    "؟", "?", "؟؟", "الخامس", "السادس", "الرابع",
-                    "الخامس الابتدائي", "السادس", "الأول", "الثاني", "الثالث",
-                ]:
-                    last_q = t
-                    break
-            if not last_q:
-                last_q = next((t for r, t in reversed(history) if r == "user"), "")
-            if last_q:
-                from app.query_analyzer.analyzer import analyze as _a
-                ctx_a = _a(last_q)
-                context = {
-                    "grade": ctx_a.scope.grade.value,
-                    "stage": ctx_a.scope.stage.value,
-                    "subject": ctx_a.scope.subject.value,
-                    "branch": ctx_a.scope.branch.value,
-                    "topic": ctx_a.scope.topic or (ctx_a.topics[0] if ctx_a.topics else None),
-                    "intent": ctx_a.intent,
-                    "prev_question": last_q,
-                }
+        context = _build_context(history) if thread_id is not None else {}
         # المرحلة 1: انظر التعليق في handle() — نفس السلوك الحالي لكل الوحدات.
         analysis, module, mode = _resolve(question, context)
         _ = module
+        # رد قصير داخل خيط قائم (لا/نعم/تمام): جواب على سؤال المساعد السابق
+        # — يُجاب من سياق الحوار لا من المصادر.
+        if (
+            thread_id is not None
+            and module is ModuleIntent.LESSON_KNOWLEDGE
+            and _is_short_ack(question)
+        ):
+            module = ModuleIntent.CONVERSATION_PRACTICE
         if module is ModuleIntent.CONVERSATION_PRACTICE and thread_id is not None:
             answer, thread_id = await self._run_conversation(
-                question, thread_id, client, store, teacher_id
+                question, thread_id, client, store, teacher_id,
+                skip_memory=(analysis.intent == "chitchat" or _is_short_ack(question)),
             )
             result = build_conversation_result(answer, thread_id)
 

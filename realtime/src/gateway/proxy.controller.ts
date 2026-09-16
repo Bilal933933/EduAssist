@@ -55,10 +55,16 @@ export class ProxyController {
   @Post("chat/stream")
   async chatStream(@Req() req: Request, @Res() res: Response) {
     this.requireStudent(req);
+    let stream;
+    try {
+      stream = await this.ai.stream(req.body);
+    } catch (err) {
+      // قبل أي بايت: نرمي لفلتر HTTP ليمرر مغلف بايثون (QUOTA_EXHAUSTED وغيره) كما هو
+      throw err;
+    }
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
-    const stream = await this.ai.stream(req.body);
     stream.on("data", (chunk: Buffer) => res.write(chunk));
     stream.on("end", () => res.end());
     stream.on("error", () => res.end());

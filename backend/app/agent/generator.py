@@ -40,7 +40,12 @@ def build_teacher_prompt(question, all_hits, history, file_contents, memory_bloc
             "استخدم كل المقتطفات المرسلة ولا تلخصها سطحياً."
         )
 
-    memory_section = f"{memory_block}\n\n" if memory_block else ""
+    memory_section = (
+        "[ذاكرة سابقة عن تفاعلات المدرس — ثانوية، قد تخص صفاً أو موضوعاً آخر، "
+        "لا تعتبرها حقائق عن السؤال الحالي]\n"
+        f"{memory_block}\n\n"
+        if memory_block else ""
+    )
 
     user = (
         f"{memory_section}{hist}"
@@ -53,6 +58,9 @@ def build_teacher_prompt(question, all_hits, history, file_contents, memory_bloc
     resolved = resolve_branch(question, scope=scope or {}, analysis=analysis) if branch in (None, "", "general") else branch
     system = TEACHER_SYSTEM + "\n\n" + get_branch_pack(resolved)
     if memory_block:
-        system = system + "\n\n" + memory_block
+        system = (
+            system + "\n\n[ذاكرة سابقة عن تفاعلات المدرس — ثانوية، لا تعتبرها حقائق عن السؤال الحالي]\n"
+            + memory_block
+        )
 
     return system, user

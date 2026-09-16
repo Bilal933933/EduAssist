@@ -52,6 +52,10 @@ export class AiProxyService {
           if (isEnvelope(err.response.data) && !err.response.data.ok) {
             throw new AppError(err.response.data.error.code);
           }
+          // بايثون يرد بالحالة 429 عند نفاد الحصة — نمرر نفس الكود بدل التعميم
+          if (err.response.status === 429) {
+            throw new AppError("QUOTA_EXHAUSTED");
+          }
           // خطأ منطقي من بايثون نفسه (4xx/5xx) — لا تكرر المحاولة
           throw new AppError("INTERNAL_ERROR");
         }

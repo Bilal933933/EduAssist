@@ -71,6 +71,9 @@ def _where_clause(scope: dict | None):
             column = getattr(KnowledgeChunk, key)
             if key in ("grade", "stage") and value:
                 conditions.append(or_(column == value, column.is_(None), column == "", column == "general"))
+            elif key == "subject" and value:
+                # المراجع العربية القديمة بلا وسم تُعامل كعربية؛ غير العربية موسوم حصراً.
+                conditions.append(or_(column == value, column.is_(None), column == ""))
             elif key == "source_type" and value == "textbook":
                 conditions.append(or_(
                     column == "textbook", column == "teacher_guide",

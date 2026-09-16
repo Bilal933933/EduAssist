@@ -39,7 +39,8 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 async def global_exception_handler(request: Request, exc: Exception):
     rid = get_request_id(request)
     set_request_id(rid)
-    get_logger("errors").error(json.dumps({"type": "unhandled", "path": request.url.path, "error": str(exc)[:200]}, ensure_ascii=False))
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    get_logger("errors").error(json.dumps({"type": "unhandled", "path": request.url.path, "error": str(exc)[:200], "trace": tb[-1500:]}, ensure_ascii=False))
     status, message = message_for("INTERNAL_ERROR")
     return fail("INTERNAL_ERROR", message, request_id=rid, status=status)
 
