@@ -1,28 +1,22 @@
 import json
-import os
 import sys
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding='utf-8')
     sys.stderr.reconfigure(encoding='utf-8')
 
-from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, BigInteger, String, Text, DateTime, ForeignKey, func
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey, create_engine, func
+from sqlalchemy.orm import sessionmaker
 
-load_dotenv()
+from app.core.config import settings
+from app.db.base import Base
 
-# نفس قاعدة البيانات المتجهية — جداول مستقلة للمحادثات
-CHAT_DB_URL = os.getenv(
-    "VECTOR_DATABASE_URL",
-    "postgresql://postgres:12345678@localhost:5432/ai_grammar_tutor",
-)
+# نفس قاعدة البيانات — المصدر الوحيد settings (كان os.getenv هنا)
+CHAT_DB_URL = settings.DATABASE_URL or settings.VECTOR_DATABASE_URL
 
 # حدود سياق المحادثة المرسل للنموذج
 MAX_CONTEXT_MESSAGES = 8
 MAX_CONTEXT_CHARS = 3000
-
-Base = declarative_base()
 
 
 class ChatThread(Base):
@@ -56,8 +50,11 @@ class ChatStore:
     """خدمة تخزين المحادثات ورسائلها وسياقها في قاعدة البيانات."""
 
     def __init__(self, db_url: str = None):
+        from app.db.session import get_engine
+
         self.db_url = db_url or CHAT_DB_URL
-        self.engine = create_engine(self.db_url)
+        # رابط مخصص للاختبارات فقط؛ وإلا المحرك المشترك من db/session
+        self.engine = create_engine(self.db_url) if db_url else get_engine()
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 

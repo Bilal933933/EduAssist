@@ -1,14 +1,12 @@
-import os
 import time
-from dotenv import load_dotenv
 from google import genai
 from google.genai import errors, types
 
-load_dotenv()
+from app.core.config import settings
 
 from app.agent.tools import TOOL_DECLARATIONS
 
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+MODEL_NAME = settings.GEMINI_MODEL
 FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"]
 MAX_RETRIES = 3
 REQUEST_TIMEOUT_MS = 30000

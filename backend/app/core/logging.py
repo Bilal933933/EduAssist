@@ -5,7 +5,6 @@
 السطر في الملفات JSON جاهز أصلاً من المتصل، فالمُنسق "%(message)s" فقط.
 """
 import logging
-import os
 import re
 import time
 from logging.handlers import RotatingFileHandler
@@ -30,11 +29,12 @@ class _ContextFilter(logging.Filter):
 
 class _RedactingFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
+        from app.core.config import settings
+
         msg = record.getMessage()
         for pat in _REDACT_PATTERNS:
             msg = pat.sub("[REDACTED]", msg)
-        for env_key in ("GEMINI_API_KEY", "INTERNAL_API_KEY"):
-            secret = os.getenv(env_key, "")
+        for secret in (settings.GEMINI_API_KEY, settings.INTERNAL_API_KEY):
             if secret and len(secret) >= 8 and secret in msg:
                 msg = msg.replace(secret, "[REDACTED]")
         record.msg = msg
@@ -48,13 +48,15 @@ def _backend_root() -> Path:
 
 def setup_logging(log_dir: str | None = None, level: str | None = None) -> Path:
     """يهيئ المجلد والمعالجات مرة واحدة. يعيد مسار مجلد السجلات."""
+    from app.core.config import settings
+
     global _configured
     root = _backend_root()
-    target = Path(log_dir or os.getenv("LOG_DIR", "logs"))
+    target = Path(log_dir or settings.LOG_DIR)
     if not target.is_absolute():
         target = root / target
     target.mkdir(parents=True, exist_ok=True)
-    lvl = (level or os.getenv("LOG_LEVEL", "INFO")).upper()
+    lvl = (level or settings.LOG_LEVEL).upper()
     numeric = getattr(logging, lvl, logging.INFO)
 
     specs = (("app", "app.jsonl"), ("retrieval", "retrieval.jsonl"), ("errors", "errors.jsonl"))

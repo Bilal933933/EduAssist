@@ -28,6 +28,8 @@ services:
     volumes:
       - ./backend/data:/app/data
       - ./backend/store:/app/store
+      # المصدر الحي الوحيد — يغذي /app/content داخل الحاوية (fallback للكود)
+      - ./content:/app/content:ro
     depends_on:
       postgres:
         condition: service_healthy

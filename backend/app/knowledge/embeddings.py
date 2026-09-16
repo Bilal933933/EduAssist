@@ -1,15 +1,13 @@
-import os
 import time
 
 import httpx
-from dotenv import load_dotenv
 from google.genai import errors
 
-load_dotenv()
+from app.core.config import settings
 
-MODEL_NAME = os.getenv("EMBEDDING_MODEL", "gemini-embedding-2")
+MODEL_NAME = settings.EMBEDDING_MODEL
 FALLBACK_EMBEDDING_MODELS = ["gemini-embedding-2-preview", "gemini-embedding-001"]
-DIMENSIONS = int(os.getenv("EMBEDDING_DIMENSIONS", "768"))
+DIMENSIONS = settings.EMBEDDING_DIMENSIONS
 BATCH_SIZE = 1
 BATCH_DELAY = 2.0
 MAX_RETRIES = 5

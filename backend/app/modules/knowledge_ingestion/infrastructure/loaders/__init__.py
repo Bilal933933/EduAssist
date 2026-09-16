@@ -19,23 +19,20 @@ PROJECT_CONTENT_DIR = str(_BACKEND.parent / "content")
 
 
 def load_book_units():
-    """يجمع المصادر مع تمرير metadata.json الحقيقي لكل كتاب/مرجع."""
+    """يجمع المصادر من المسار الحي الوحيد (جذر المشروع)، مع fallback لحاوية Docker."""
     sections = []
-    seen_dirs = set()
-    for cdir in [PROJECT_CONTENT_DIR, CONTENT_DIR]:
-        if not os.path.exists(cdir):
+    # المصدر الوحيد: content/ الجذر. backend/content للتوافق مع Docker فقط.
+    # كان الكود السابق يلف على الاثنين معاً فيسبب تكرار كل قسم مرتين.
+    cdir = PROJECT_CONTENT_DIR if os.path.exists(PROJECT_CONTENT_DIR) else CONTENT_DIR
+    if not os.path.exists(cdir):
+        return sections
+    for book_dir in _iter_book_dirs(cdir):
+        if "backup" in book_dir.lower():
             continue
-        real = os.path.realpath(cdir)
-        if real in seen_dirs:
-            continue
-        seen_dirs.add(real)
-        for book_dir in _iter_book_dirs(cdir):
-            if "backup" in book_dir.lower():
-                continue
-            segments = os.path.relpath(book_dir, cdir).split(os.sep)
-            loaded = _load_simple_book(book_dir, segments, content_root=cdir)
-            print(f"  content/{'/'.join(segments)}: {len(loaded)} قسماً")
-            sections.extend(loaded)
+        segments = os.path.relpath(book_dir, cdir).split(os.sep)
+        loaded = _load_simple_book(book_dir, segments, content_root=cdir)
+        print(f"  content/{'/'.join(segments)}: {len(loaded)} قسماً")
+        sections.extend(loaded)
     return sections
 
 

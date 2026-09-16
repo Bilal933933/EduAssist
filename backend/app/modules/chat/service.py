@@ -92,6 +92,37 @@ def _is_short_ack(question: str) -> bool:
     return bool(q) and len(q) <= 12 and q in _SHORT_ACKS
 
 
+def _extract_assistant_anchor(history: list) -> str | None:
+    """يلتقط مثالاً اقترحه المساعد (جملة مقتبسة تحوي مادة نحوية) من آخر رسائله.
+
+    يغطي حالة: المساعد يقترح «لا يكذب المؤمن» ثم يسأل المدرس «كيف اشرح لهم الاجابة»
+    — الموضوع الحقيقي في رسالة المساعد لا في رسالة المدرس.
+    """
+    import re as _re
+
+    for role, text in reversed(history or []):
+        if role != "assistant" or not text:
+            continue
+        # جملة مقتبسة بعلامات تنصيص عربية/لاتينية أولاً
+        for m in _re.finditer(r'[«"]([^»"]{3,80})[»"]', text):
+            cand = m.group(1).strip()
+            if any(k in cand for k in ["لا ", "لا\u200c", "إن ", "كان ", "الفاعل", "المبتدأ"]):
+                return cand
+        # نمط «جملة مثل: ...» بلا تنصيص
+        m2 = _re.search(r"جملة مثل:\s*([^\n؟?]{3,80})", text)
+        if m2:
+            return m2.group(1).strip().strip("«»\" ")
+        # سطر قصير يحوي «لا» + فعل (مرشح نافية/ناهية)
+        for line in text.split("\n"):
+            line = line.strip().strip("«»\"-• ")
+            if 4 <= len(line) <= 60 and "لا " in f" {line} " and _re.search(r"[\u0600-\u06FF]{2,}", line):
+                return line
+        # أول رسالة مساعد substantive فقط — لا نواصل أبعد منها
+        if len(text.strip()) > 20:
+            break
+    return None
+
+
 def _build_context(history: list) -> dict:
     """سياق المحلل من كامل السجل — لا من آخر سؤال فقط.
 
@@ -137,7 +168,8 @@ def _build_context(history: list) -> dict:
         except Exception:
             intent = None
     if not any([topic, grade, intent]):
-        return {}
+        anchor_only = _extract_assistant_anchor(history)
+        return {"anchor": anchor_only} if anchor_only else {}
     return {
         "grade": grade,
         "stage": stage,
@@ -146,6 +178,7 @@ def _build_context(history: list) -> dict:
         "topic": topic,
         "intent": intent,
         "prev_question": prev_q,
+        "anchor": _extract_assistant_anchor(history),
     }
 
 

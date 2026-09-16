@@ -1,13 +1,10 @@
-import os
 from sqlalchemy import Column, BigInteger, String, Text, Integer, DateTime, Float, func, Index
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
-from dotenv import load_dotenv
-
 from app.db.base import Base
+from app.core.config import settings
 
-load_dotenv()
-
-DB_URL = os.getenv("VECTOR_DATABASE_URL", "postgresql://postgres:12345678@localhost:5432/ai_grammar_tutor")
+# الرابط الموحد — كان os.getenv هنا يكرر config ويتجاوزه
+DB_URL = settings.DATABASE_URL or settings.VECTOR_DATABASE_URL
 
 
 class KnowledgeChunk(Base):

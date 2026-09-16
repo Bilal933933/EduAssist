@@ -12,8 +12,6 @@
 | `teacher_mistakes_v2` | أخطاء شائعة (grade_id + normalized_key) |
 | `teacher_lesson_events` | أحداث تحضير/نقاش خفيفة للـ Agent |
 
-جداول v3 القديمة (`teacher_profiles`, `teacher_mistakes`, `teacher_recent_lessons`) تُقرأ مرة عند الترحيل فقط.
-
 ## تدفق الحقن
 
 ```

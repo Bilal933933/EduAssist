@@ -11,11 +11,9 @@ from sqlalchemy import (
     create_engine,
     func,
 )
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
-from app.storage.chat_store import CHAT_DB_URL
-
-Base = declarative_base()
+from app.db.base import Base
 
 
 class ConversationSummary(Base):
@@ -35,7 +33,9 @@ class SummaryRepository:
     """قراءة/كتابة ملخص thread واحد — بلا أي منطق تلخيص."""
 
     def __init__(self, db_url: str | None = None):
-        self.engine = create_engine(db_url or CHAT_DB_URL)
+        from app.db.session import get_engine
+
+        self.engine = create_engine(db_url) if db_url else get_engine()
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 

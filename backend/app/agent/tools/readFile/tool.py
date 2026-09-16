@@ -6,30 +6,30 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
+_HERE = os.path.dirname(__file__)
+# الجذر الحي الوحيد: content/ في جذر المشروع. backend/content fallback لـ Docker فقط.
+_PROJECT_CONTENT = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "..", "..", "content"))
+_BACKEND_CONTENT = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "..", "content"))
+
 ALLOWED_ROOTS = [
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "books"),
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "data"),
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "content"),
-    os.path.join(os.path.dirname(__file__), "..", "..", "content"),
+    _PROJECT_CONTENT if os.path.exists(_PROJECT_CONTENT) else _BACKEND_CONTENT,
+    _BACKEND_CONTENT,
 ]
 
 def _resolve_safe_path(path: str) -> str:
-    path = path.replace("\\", "/").strip()
+    path = path.replace("\\", "/").strip().lstrip("/")
     if ".." in path:
         raise ValueError(f"مسار غير مسموح: {path}")
+    # الAgent قد يمرر content/... أو المسار النسبي مباشرة — نوحدهما
+    if path.startswith("content/"):
+        path = path[len("content/"):]
     for root in ALLOWED_ROOTS:
         abs_root = os.path.abspath(root)
         if not os.path.exists(abs_root):
             continue
-        candidate = os.path.abspath(os.path.join(abs_root, path.lstrip("/")))
+        candidate = os.path.abspath(os.path.join(abs_root, path))
         if os.path.exists(candidate) and candidate.startswith(abs_root):
             return candidate
-        direct = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", path))
-        if os.path.exists(direct):
-            for r in ALLOWED_ROOTS:
-                ar = os.path.abspath(r)
-                if os.path.exists(ar) and direct.startswith(ar):
-                    return direct
     raise FileNotFoundError(f"الملف غير موجود أو غير مسموح: {path}")
 
 def _smart_read(content: str, path: str, query: str = "", max_chars: int = 8000) -> str:

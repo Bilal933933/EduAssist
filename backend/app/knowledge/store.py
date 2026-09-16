@@ -19,8 +19,10 @@ METADATA_COLUMNS = {
 
 class VectorStore:
     def __init__(self, db_url=None):
+        from app.db.session import get_engine
+
         self.db_url = db_url or DB_URL
-        self.engine = create_engine(self.db_url)
+        self.engine = create_engine(self.db_url) if db_url else get_engine()
         Base.metadata.create_all(self.engine)
         self._ensure_metadata_schema()
         self.Session = sessionmaker(bind=self.engine)

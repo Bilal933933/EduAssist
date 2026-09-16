@@ -1,17 +1,13 @@
-import os
 import sys
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
-from dotenv import load_dotenv
 from app.core.errors import AppError
 from app.knowledge.vector_service import VectorService
 from app.knowledge.hybrid import rrf_fuse
 from app.agent.clarifier import extract_scope
-
-load_dotenv()
 
 
 class KnowledgeBase:

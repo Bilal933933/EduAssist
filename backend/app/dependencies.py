@@ -1,6 +1,6 @@
-import os
 from functools import lru_cache
 
+from app.core.config import settings
 from app.core.errors import AppError
 from google import genai
 
@@ -44,7 +44,7 @@ def get_indexer() -> IndexerService:
 @lru_cache(maxsize=1)
 def get_gemini_client() -> genai.Client:
     """عميل Gemini مشترك — يُنشأ مرة واحدة بدل إنشائه داخل كل طلب."""
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = settings.GEMINI_API_KEY
     if not api_key:
         raise AppError("GEMINI_KEY_MISSING")
     return genai.Client(api_key=api_key)

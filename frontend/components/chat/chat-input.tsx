@@ -29,9 +29,9 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pb-2 sm:pb-3 pt-1">
+    <div className="w-full max-w-2xl mx-auto px-1 sm:px-2 pt-1">
       <div
-        className="rounded-3xl border border-border bg-muted/50 focus-within:bg-background focus-within:border-foreground/30 transition-colors px-3.5 pt-2 pb-1.5"
+        className="rounded-[1.75rem] border border-border bg-background shadow-float focus-within:border-foreground/30 transition-colors px-3.5 pt-2 pb-1.5"
         role="form"
         aria-label="إرسال سؤال للمدرس"
       >
@@ -61,7 +61,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           </Button>
         </div>
       </div>
-      <div className="flex gap-1.5 mt-1.5 overflow-x-auto scrollbar-hide pb-0.5" aria-label="اقتراحات سريعة">
+      <div className="flex gap-1.5 mt-1.5 justify-start sm:justify-center overflow-x-auto scrollbar-hide pb-0.5" aria-label="اقتراحات سريعة">
         {QUICK_CHIPS.map((chip) => (
           <button
             key={chip}

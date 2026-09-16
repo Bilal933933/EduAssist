@@ -116,7 +116,7 @@ def _detect_intent(q: str) -> str:
         return "review"
     if "نشاط" in ql or "تفاعلي" in ql:
         return "activity"
-    if "لا يفهم" in ql or "ماذا أفعل" in ql or "كيف أشرح" in ql:
+    if "لا يفهم" in ql or "ماذا أفعل" in ql or "كيف أشرح" in ql or "كيف اشرح" in ql:
         return "pedagogical_advice"
     if ql.startswith("ما هو") or ql.startswith("ما هي") or "اشرح" in ql:
         return "explain"
@@ -224,7 +224,12 @@ def analyze(question: str, context: dict | None = None) -> QueryAnalysis:
     ):
         intent = "chitchat"
     # إذا كان السؤال قصير وبلا موضوع لكن السياق يحمل موضوعاً، استعره
-    if not scope.topic and context and context.get("topic") and len(q_stripped) < 15:
+    # + حالة المتابعة الضميرية (كيف اشرح لهم الاجابة): سؤال تربوي يحيل
+    # لمثال اقترحه المساعد — يرث الموضوع/المرساة مهما طال نصه.
+    _PRONOUN_FOLLOWUP = any(k in q_stripped for k in ["لهم", "الاجابة", "الإجابة", "هذا", "ذلك", "اشرح"])
+    if not scope.topic and context and context.get("topic") and (
+        len(q_stripped) < 15 or (_PRONOUN_FOLLOWUP and intent in ("pedagogical_advice", "explain", "general_question"))
+    ):
         scope.topic = context["topic"]
         if not scope.subject.value and context.get("subject"):
             scope.subject = ScopeField(value=context["subject"], status="inferred")
@@ -234,6 +239,12 @@ def analyze(question: str, context: dict | None = None) -> QueryAnalysis:
             intent = context["intent"]
     source_policy = _detect_source_policy(question, intent)
     topics = [scope.topic] if scope.topic else []
+    # مرساة المساعد (مثال مقتبس) تصلح موضوع بحث عند غيابه — لا نترك
+    # سؤال «كيف اشرح لهم» بلا مادة يبحث عنها.
+    if not topics and context and context.get("anchor"):
+        topics = [context["anchor"]]
+        if not scope.topic:
+            scope.topic = context["anchor"]
     if intent == "compare":
         m = re.search(r"الفرق بين\s+(.+?)\s+و\s+(.+?)(?:\?|؟|$)", question)
         if m:

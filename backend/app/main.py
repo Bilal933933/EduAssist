@@ -1,7 +1,6 @@
 import json
 import time
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,7 +11,6 @@ from app.core.request_context import set_request_id
 from app.core.response import get_request_id, ok, request_id_middleware
 from app.core.security import internal_key_guard
 
-load_dotenv()
 setup_logging()
 
 app = FastAPI(title="Arabic Grammar Tutor API")

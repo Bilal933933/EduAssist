@@ -4,6 +4,7 @@
 
 :root {
   --radius: 1.75rem;
+  --font-arabic: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
   --background: #f2f4f7;
   --foreground: #111111;
   --card: #ffffff;

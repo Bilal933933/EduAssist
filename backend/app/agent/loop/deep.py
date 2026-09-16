@@ -35,16 +35,19 @@ def run_agentic_rag(client, kb, question, history=None, max_iterations=4, analys
 
     # مسار خفيف: بحث واحد + توليد واحد (للإعراب والشرح والأسئلة المفردة).
     if light:
+        from app.agent.loop.light import enrich_light_query
+
         question_scope = extract_scope(question)
         timer = Timer(f"Light: {question[:30]}")
-        hits = _light_search(kb, client, question, question_scope)
-        trace = [{"tool": "searchChunks", "args": {"query": question}, "light": True, "hits": len(hits)}]
+        hits = _light_search(kb, client, question, question_scope, history=history, analysis=analysis)
+        enriched = enrich_light_query(question, history, analysis)
+        trace = [{"tool": "searchChunks", "args": {"query": enriched}, "light": True, "hits": len(hits)}]
         # Tier2 تربوي منفصل لأسئلة الأسلوب فقط — [] بأمان قبل إضافة الكتب
-        _ped = _fetch_pedagogy_hits(kb, client, question, question_scope) if _is_pedagogy_query(question, analysis) else []
+        _ped = _fetch_pedagogy_hits(kb, client, enriched, question_scope, analysis=analysis) if _is_pedagogy_query(question, analysis) else []
         if _ped:
             hits = _merge_pedagogy(hits, _ped, ped_first=True, limit=13)
             trace.append({"tool": "searchChunks:pedagogy_tier2", "hits": len(_ped)})
-        system, user = _build_light_prompt(question, hits, history)
+        system, user = _build_light_prompt(question, hits, history, analysis=analysis)
         try:
             answer = call_simple(client, user, system)
         except Exception as e:

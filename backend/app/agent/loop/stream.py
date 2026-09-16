@@ -35,15 +35,18 @@ async def run_agentic_rag_stream(client, kb, question, history=None, max_iterati
     import asyncio
     # مسار خفيف متدفق: بحث واحد + توليد متدفق.
     if light:
+        from app.agent.loop.light import enrich_light_query
+
         yield {"type": "status", "message": "يبحث في المصادر..."}
-        hits = _light_search(kb, client, question, question_scope)
-        trace = [{"tool": "searchChunks", "args": {"query": question}, "light": True, "hits": len(hits)}]
-        _ped_s = _fetch_pedagogy_hits(kb, client, question, question_scope) if _is_pedagogy_query(question, analysis) else []
+        hits = _light_search(kb, client, question, question_scope, history=history, analysis=analysis)
+        enriched_s = enrich_light_query(question, history, analysis)
+        trace = [{"tool": "searchChunks", "args": {"query": enriched_s}, "light": True, "hits": len(hits)}]
+        _ped_s = _fetch_pedagogy_hits(kb, client, enriched_s, question_scope, analysis=analysis) if _is_pedagogy_query(question, analysis) else []
         if _ped_s:
             hits = _merge_pedagogy(hits, _ped_s, ped_first=True, limit=13)
             trace.append({"tool": "searchChunks:pedagogy_tier2", "hits": len(_ped_s)})
         yield {"type": "status", "message": "يولد الإجابة..."}
-        system, user = _build_light_prompt(question, hits, history)
+        system, user = _build_light_prompt(question, hits, history, analysis=analysis)
         full = ""
         try:
             from google.genai import types as gen_types

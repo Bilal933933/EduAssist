@@ -48,12 +48,12 @@ export function ChatPanel({ stats, engine, emptyState }: ChatPanelProps) {
         </button>
       )}
 
-      <main ref={mainRef} onScroll={handleScroll} className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-6 py-4 sm:py-6 [scrollbar-gutter:stable]">
+      <main ref={mainRef} onScroll={handleScroll} className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-6 pt-4 sm:pt-6 pb-48 [scrollbar-gutter:stable]">
         <div className="max-w-2xl mx-auto">
           {messages.length === 0 ? (
             <div className="my-auto py-8">{emptyState}</div>
           ) : (
-            <div className="space-y-3 pt-4 pb-20">
+            <div className="space-y-3 pt-4 pb-8">
               {messages.map((msg) => (
                 <MessageItem key={msg.id} message={msg} />
               ))}
@@ -75,16 +75,18 @@ export function ChatPanel({ stats, engine, emptyState }: ChatPanelProps) {
             type="button"
             onClick={jumpToBottom}
           aria-label="العودة لآخر الرد"
-          className="absolute bottom-32 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold shadow-md hover:bg-muted"
+          className="absolute bottom-40 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold shadow-md hover:bg-muted"
         >
           <ArrowDown className="size-3.5" />
           آخر الرد
         </button>
       )}
 
-      {/* Input — inside the flex flow, no overlap */}
-      <footer className="border-t border-border/60 bg-background shrink-0 pb-[env(safe-area-inset-bottom)]">
-        <ChatInput onSend={send} isLoading={isLoading} />
+      {/* Input عائم — طبقة تدرج شفافة فوق السكرول، لا تحجب المحتوى ولا تغطي كامل العرض */}
+      <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-background via-background/85 to-transparent px-3 pt-8 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="pointer-events-auto">
+          <ChatInput onSend={send} isLoading={isLoading} />
+        </div>
       </footer>
     </div>
   );
