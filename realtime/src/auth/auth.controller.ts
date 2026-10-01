@@ -10,17 +10,7 @@ import {
 import { createUser, findUserByEmail } from "../db";
 import { hashPassword, verifyPassword } from "./password.util";
 import { signToken } from "./jwt.util";
-
-class RegisterDto {
-  email!: string;
-  password!: string;
-  name?: string;
-}
-
-class LoginDto {
-  email!: string;
-  password!: string;
-}
+import { LoginDto, RegisterDto } from "./dto";
 
 @Controller("auth")
 export class AuthController {
