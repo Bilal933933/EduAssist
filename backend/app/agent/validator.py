@@ -1,4 +1,4 @@
-import re
+from arabic_text import parse_json_block
 
 VALIDATE_PROMPT = """أنت مدقق مصادر لمساعد مدرس.
 
@@ -29,11 +29,9 @@ def validate_citations(client, answer: str, hits: list) -> tuple:
     try:
         from app.agent.fc_client import call_simple
         raw = call_simple(client, prompt, "أنت مدقق. أجب JSON فقط.")
-        m = re.search(r'\{.*\}', raw, re.DOTALL)
-        if not m:
+        data = parse_json_block(raw)
+        if not data:
             return True, answer, []
-        import json
-        data = json.loads(m.group())
         valid = data.get("valid", True)
         issues = data.get("issues", [])
         corrected = data.get("corrected", answer)

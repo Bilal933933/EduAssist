@@ -1,4 +1,4 @@
-import json, re
+from arabic_text import parse_json_block
 
 def generate_flashcards(client, hits: list, topic: str = "الفاعل") -> list:
     context = "\n".join(f"- {h.get('text','')[:250]}" for h in hits[:5])
@@ -10,9 +10,9 @@ def generate_flashcards(client, hits: list, topic: str = "الفاعل") -> list
     try:
         from app.agent.fc_client import call_simple
         raw = call_simple(client, prompt, "أنت مولد بطاقات. JSON فقط.")
-        m = re.search(r'\{.*\}', raw, re.DOTALL)
-        if not m: return []
-        return json.loads(m.group()).get("cards", [])[:5]
+        data = parse_json_block(raw)
+        if not data: return []
+        return data.get("cards", [])[:5]
     except: return []
 
 def generate_quiz(client, hits: list, topic: str = "الفاعل") -> list:
@@ -25,7 +25,7 @@ def generate_quiz(client, hits: list, topic: str = "الفاعل") -> list:
     try:
         from app.agent.fc_client import call_simple
         raw = call_simple(client, prompt, "أنت مولد اختبارات. JSON فقط.")
-        m = re.search(r'\{.*\}', raw, re.DOTALL)
-        if not m: return []
-        return json.loads(m.group()).get("quiz", [])[:5]
+        data = parse_json_block(raw)
+        if not data: return []
+        return data.get("quiz", [])[:5]
     except: return []

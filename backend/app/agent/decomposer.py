@@ -1,5 +1,6 @@
-import json
 import re
+
+from arabic_text import extract_topic, parse_json_block
 
 DECOMPOSE_PROMPT = """حلل طلب المدرس وفككه إلى استعلامات بحث فرعية.
 
@@ -28,7 +29,7 @@ EXPAND_INTENTS = {"generate_worksheet", "generate_exercises", "generate_quiz", "
 TOPIC_PILLARS = {
     "الجملة الفعلية": ["الفعل وأنواعه", "الفاعل وأحكامه وعلامات رفعه", "المفعول به وعلامات نصبه"],
     "الجملة الاسمية": ["المبتدأ وأحكامه", "الخبر وأنواعه", "النواسخ"],
-    "الفاعل": ["تعريف الفاعل", "أنواع الفاعل", "عامل الفاعل", "علامات رفع الفاعل"],
+    "الفاعل": ["تعريف الفاعل وصوره ظاهر وضمير متصل ومستتر", "عامل الفاعل وحكمه الرفع وتأخره عن الفعل", "تذكير الفعل وتأنيثه وإفراده مع المثنى والجمع", "حذف الفاعل ونائب الفاعل", "فاعل نعم وبئس"],
     "المفعول به": ["تعريف المفعول به", "صور المفعول به", "علامات نصب المفعول به"],
     "المبتدأ": ["تعريف المبتدأ", "الخبر وأنواعه", "النواسخ"],
     "كان وأخواتها": ["تعريف كان وأخواتها", "عمل كان وأخواتها", "أمثلة كان وأخواتها"],
@@ -60,19 +61,25 @@ def _extract_topic_and_grade(question: str) -> tuple[str | None, str]:
     m = re.search(r"الصف\s+(الأول|الثاني|الثالث|الرابع|الخامس|السادس)(?:\s+(الابتدائي|الإعدادي|الثانوي))?", q)
     if m:
         grade = f"الصف {m.group(1)}" + (f" {m.group(2)}" if m.group(2) else "")
-    m = re.search(r"(?:درس|وحدة|حول|لدرس|لوحدة)\s+(.+?)(?:\s*[-–،,]\s*|\s+للصف|\s+مع\s+|\?|؟|$)", q)
-    if m:
-        topic = m.group(1).strip(" ،ـ")
+    topic = extract_topic(q)
+    if topic:
         for v in _REQUEST_VERBS:
             if topic.startswith(v):
                 topic = topic[len(v):].strip()
         return (topic or None), grade
+    # طلب شامل بلا حرف جر (أخبرني بكل أحكام الفاعل): التقط الموضوع من خريطة المحاور.
+    for key in TOPIC_PILLARS:
+        if key in q:
+            return key, grade
     return None, grade
 
 
 def _fallback_queries(question: str, intent: str | None) -> list:
     """توسعة حتمية بدون LLM: تفكيك الموضوع إلى أركانه حسب النية."""
     topic, grade = _extract_topic_and_grade(question)
+    if intent == "pedagogical_advice" and topic:
+        g = f" {grade}" if grade else ""
+        return [f"شرح {topic}{g}", f"استراتيجيات تدريس {topic}{g}"]
     if not topic or intent not in EXPAND_INTENTS:
         return [question]
     g = f" {grade}" if grade else ""
@@ -99,9 +106,15 @@ def get_pillars(question: str) -> list:
 
 def decompose_question(client, question: str, max_queries: int = 5, intent: str | None = None) -> list:
     """يفكك سؤال المدرس إلى استعلامات فرعية عبر Gemini، مع fallback حتمي موجّه بالنية."""
+    # الطلب الشامل (كل الأحكام) يُفكك ولو كانت نيته شرحاً مفرداً.
+    _comprehensive = any(m in (question or "") for m in ("كل أحكام", "كل احكام", "بكل", "جميع", "بالتفصيل"))
     # الأسئلة المفردة (إعراب/شرح/تحية) لا تحتاج تفكيكاً — استعلام واحد مباشر بلا LLM.
-    if intent in ("parse", "explain", "chitchat", "general_question", "correct", "review"):
+    if intent in ("parse", "explain", "chitchat", "general_question", "correct", "review") and not _comprehensive:
         return [question]
+    if _comprehensive:
+        fb = _fallback_queries(question, "prepare_lesson")
+        if len(fb) > 1:
+            return fb[:max_queries]
     # حالة خاصة حتمية: الفرق بين A و B → لا تعتمد على LLM فقط
     if "الفرق بين" in question or "الفرق بين" in question.replace("ـ",""):
         m = re.search(r"الفرق بين\s+(.+?)\s+و\s+(.+?)(?:\?|؟|$)", question)
@@ -118,10 +131,9 @@ def decompose_question(client, question: str, max_queries: int = 5, intent: str 
         from app.agent.fc_client import call_simple
         raw = call_simple(client, prompt, "أنت محلل أسئلة. أجب JSON فقط.")
         # استخراج JSON
-        m = re.search(r'\{.*\}', raw, re.DOTALL)
-        if not m:
+        data = parse_json_block(raw)
+        if not data:
             return _fallback_queries(question, intent)
-        data = json.loads(m.group())
         queries = data.get("queries", [question])
         # تنظيف
         queries = [q.strip() for q in queries if q.strip()][:max_queries]

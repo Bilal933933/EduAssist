@@ -152,7 +152,7 @@ class VectorSearch:
             if not chunks:
                 return []
             query_vec = np.array(query_embedding, dtype=np.float32)
-            valid = [(i, c) for i, c in enumerate(chunks) if c.embedding]
+            valid = [(i, c) for i, c in enumerate(chunks) if c.embedding is not None]
             if not valid:
                 return []
             embeddings = np.array([c.embedding for _, c in valid], dtype=np.float32)

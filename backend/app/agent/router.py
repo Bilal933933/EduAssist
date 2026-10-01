@@ -14,15 +14,26 @@ DIRECT_INTENTS = {"chitchat"}
 
 LIGHT_INTENTS = {
     "parse", "explain", "general_question",
-    "correct", "review", "pedagogical_advice",
+    "correct", "review",
 }
 
 DEEP_INTENTS = {
-    "prepare_lesson", "compare",
+    "prepare_lesson", "compare", "pedagogical_advice",
     "generate_worksheet", "generate_exercises", "generate_quiz",
     "generate_exam", "generate_reading", "generate_discussion",
     "generate_visual", "generate_revision", "activity",
 }
+
+# طلب شامل (كل/جميع/بالتفصيل) يحتاج تفكيكاً ونقداً — لا يكفيه بحث واحد خفيف.
+_COMPREHENSIVE_MARKERS = (
+    "كل أحكام", "كل احكام", "بكل", "جميع", "كاملة", "بالتفصيل",
+    "أخبرني بكل", "اخبرني بكل", "جميع أحكام", "جميع احكام",
+)
+
+
+def is_comprehensive(question: str = "") -> bool:
+    q = question or ""
+    return any(m in q for m in _COMPREHENSIVE_MARKERS)
 
 CHITCHAT_REPLIES = {
     "مرحبا": "أهلاً بك يا زميلي الفاضل! أنا مساعدك لتحضير دروس اللغة العربية. اذكر لي الدرس والصف (مثال: حضر لي درس الفاعل)، أو أعطني جملة لأعربها لك.",
@@ -32,12 +43,15 @@ CHITCHAT_REPLIES = {
 }
 
 
-def route(analysis) -> str:
+def route(analysis, question: str = "") -> str:
     """يحدد المسار من نية التحليل. مخرج: direct | light | deep."""
     intent = getattr(analysis, "intent", None) or "general_question"
     if intent in DIRECT_INTENTS:
         return "direct"
     if intent in LIGHT_INTENTS:
+        # الطلب الشامل (كل الأحكام) يتجاوز light إلى deep ولو كانت نيته explain.
+        if intent in ("explain", "general_question") and is_comprehensive(question):
+            return "deep"
         return "light"
     return "deep"
 

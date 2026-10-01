@@ -20,12 +20,15 @@ export interface ChatMessage {
   trace?: AgentTraceStep[];
   durationMs?: number;
   streaming?: boolean;
+  /** تلميح غير حاجب (صف مقترح) يُعرض تحت الرسالة — يختفي عند اختيار صف */
+  hint?: { question: string; options: string[] } | null;
 }
 
 export interface ChatResponse {
   answer: string;
   hits: KnowledgeHit[];
   thread_id: number | null;
+  clarification_hint?: { question: string; options: string[] } | null;
 }
 
 export interface ChatThread {

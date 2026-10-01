@@ -79,5 +79,16 @@ backend/content/
 # Turbo
 .turbo/
 
+# Aider
+.aider*
+.aider.tags.cache.v4/
+
+# Playwright MCP
+.playwright-mcp/
+
+# نسخ احتياطية وسجلات محلية — لا تُرفع
+backups/
+realtime/logs/
+
 # Vercel
 .vercel

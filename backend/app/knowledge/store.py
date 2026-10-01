@@ -13,6 +13,10 @@ METADATA_COLUMNS = {
     "book_id": "VARCHAR(128)",
     "unit": "VARCHAR(255)",
     "lesson": "VARCHAR(255)",
+    "term": "VARCHAR(32)",
+    "parent_section": "VARCHAR(512)",
+    "chunk_index": "INTEGER",
+    "chunk_token_count": "INTEGER",
     "concepts": "TEXT[]",
 }
 
@@ -33,6 +37,7 @@ class VectorStore:
             return
         with self.engine.begin() as conn:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             conn.execute(text('ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS "search_text" TEXT'))
             conn.execute(text('ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS "search_vector" TSVECTOR'))
             conn.execute(text('CREATE INDEX IF NOT EXISTS "ix_knowledge_chunks_search_vector_gin" ON knowledge_chunks USING GIN ("search_vector")'))
@@ -49,6 +54,9 @@ class VectorStore:
                 "ix_knowledge_chunks_branch": '"branch"',
                 "ix_knowledge_chunks_source_type": '"source_type"',
                 "ix_knowledge_chunks_book_id": '"book_id"',
+                "ix_chunks_term": '"term"',
+                "ix_chunks_parent": '"parent_section"',
+                "ix_chunks_book_lesson": '"book_id", "lesson"',
             }.items():
                 conn.execute(text(
                     f'CREATE INDEX IF NOT EXISTS "{name}" ON knowledge_chunks ({cols})'
@@ -67,6 +75,14 @@ class VectorStore:
             "book_id": chunk.get("book_id") or None,
             "unit": chunk.get("unit") or None,
             "lesson": chunk.get("lesson") or chunk.get("title") or None,
+            "term": chunk.get("term") or None,
+            "parent_section": chunk.get("parent_section") or "|".join([
+                str(chunk.get("book_id") or ""),
+                str(chunk.get("unit") or ""),
+                str(chunk.get("lesson") or chunk.get("title") or ""),
+            ]),
+            "chunk_index": chunk.get("chunk_index"),
+            "chunk_token_count": chunk.get("chunk_token_count"),
             "concepts": concepts,
         }
 
@@ -82,7 +98,7 @@ class VectorStore:
         ]
         return _normalize_arabic(" ".join(p for p in parts if p))
 
-    def upsert(self, chunk: dict, embedding: list):
+    def upsert(self, chunk: dict, embedding: list | None = None):
         session = self.Session()
         try:
             doc_key = self._generate_doc_key(chunk)
@@ -93,6 +109,7 @@ class VectorStore:
             if not values["subject"]:
                 print(f"[ingest warn] subject مفقود للمصدر: {chunk.get('source') or chunk.get('doc_path') or '?'}")
             stext = self._search_text(chunk)
+            vec = None if embedding is None else [float(x) for x in embedding]
             if existing:
                 existing.doc_path = chunk.get("doc_path", existing.doc_path)
                 existing.doc_type = chunk.get("doc_type", values["source_type"]) or existing.doc_type
@@ -100,7 +117,8 @@ class VectorStore:
                 existing.text = chunk.get("text", existing.text)
                 existing.source = chunk.get("source", existing.source)
                 existing.page = chunk.get("page", existing.page)
-                existing.embedding = np.array(embedding, dtype=np.float32).tolist()
+                if vec is not None:
+                    existing.embedding = vec
                 existing.search_text = stext
                 existing.search_vector = func.to_tsvector("simple", stext)
                 for key, value in values.items():
@@ -114,7 +132,7 @@ class VectorStore:
                     text=chunk.get("text", ""),
                     source=chunk.get("source", ""),
                     page=chunk.get("page"),
-                    embedding=np.array(embedding, dtype=np.float32).tolist(),
+                    embedding=vec,
                     search_text=stext,
                     search_vector=func.to_tsvector("simple", stext),
                     **values,

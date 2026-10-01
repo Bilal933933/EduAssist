@@ -1,7 +1,7 @@
 """بوابة صلة الأدلة: نقد المسترجع قبل التوليد + بحث موجه للمحاور الناقصة."""
-import json
-import re
 import sys
+
+from arabic_text import parse_json_block
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding='utf-8')
@@ -79,11 +79,10 @@ def judge_relevance(client, question: str, hits: list, pillars: list | None = No
                                      evidence=_ev_lines(batch, b)),
                 "أنت ناقد صلة أدلة. أجب JSON فقط.",
             )
-            m = re.search(r'\{.*\}', raw, re.DOTALL)
-            if not m:
+            data = parse_json_block(raw)
+            if not data:
                 keep.extend(range(b, b + len(batch)))
                 continue
-            data = json.loads(m.group())
             nb = b + len(batch)
             keep.extend([i for i in data.get("keep", []) if isinstance(i, int) and b <= i < nb])
             drop.extend([i for i in data.get("drop", []) if isinstance(i, int) and b <= i < nb])

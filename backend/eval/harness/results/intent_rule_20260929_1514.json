@@ -1,0 +1,444 @@
+{
+ "harness_version": "v1",
+ "adapter": "rule",
+ "commit": "a4daa5e",
+ "generated_at": "2026-09-29T15:14:27.823729+00:00",
+ "summary": {
+  "cases": 26,
+  "accuracy": 0.923,
+  "correct": 24,
+  "wrong": 2,
+  "llm_call_rate": 0.0,
+  "llm_calls": 0,
+  "ambiguous_rate": 0.038,
+  "latency_ms_avg": 3.7,
+  "by_intent": {
+   "prepare_lesson": {
+    "total": 6,
+    "correct": 4,
+    "accuracy": 0.667
+   },
+   "parse": {
+    "total": 3,
+    "correct": 3,
+    "accuracy": 1.0
+   },
+   "explain": {
+    "total": 2,
+    "correct": 2,
+    "accuracy": 1.0
+   },
+   "compare": {
+    "total": 2,
+    "correct": 2,
+    "accuracy": 1.0
+   },
+   "chitchat": {
+    "total": 3,
+    "correct": 3,
+    "accuracy": 1.0
+   },
+   "correct": {
+    "total": 1,
+    "correct": 1,
+    "accuracy": 1.0
+   },
+   "review": {
+    "total": 1,
+    "correct": 1,
+    "accuracy": 1.0
+   },
+   "pedagogical_advice": {
+    "total": 2,
+    "correct": 2,
+    "accuracy": 1.0
+   },
+   "generate_worksheet": {
+    "total": 1,
+    "correct": 1,
+    "accuracy": 1.0
+   },
+   "generate_exercises": {
+    "total": 1,
+    "correct": 1,
+    "accuracy": 1.0
+   },
+   "generate_quiz": {
+    "total": 1,
+    "correct": 1,
+    "accuracy": 1.0
+   },
+   "generate_exam": {
+    "total": 1,
+    "correct": 1,
+    "accuracy": 1.0
+   },
+   "generate_revision": {
+    "total": 1,
+    "correct": 1,
+    "accuracy": 1.0
+   },
+   "activity": {
+    "total": 1,
+    "correct": 1,
+    "accuracy": 1.0
+   }
+  },
+  "errors": [
+   {
+    "id": "intent_04",
+    "question": "جهزلي حصة نحو للعيال عن الفاعل",
+    "expected": "prepare_lesson",
+    "predicted": "general_question",
+    "source": "rule"
+   },
+   {
+    "id": "intent_05",
+    "question": "عايز أحضر درس الفاعل للخامس",
+    "expected": "prepare_lesson",
+    "predicted": "general_question",
+    "source": "rule"
+   }
+  ]
+ },
+ "results": [
+  {
+   "id": "intent_01",
+   "question": "حضر لي درس الفاعل - الصف الخامس الابتدائي",
+   "expected": "prepare_lesson",
+   "ambiguous_expected": false,
+   "predicted": "prepare_lesson",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 94.7,
+   "error": null
+  },
+  {
+   "id": "intent_02",
+   "question": "حضر لي درس المبتدأ والخبر للصف السادس الابتدائي",
+   "expected": "prepare_lesson",
+   "ambiguous_expected": false,
+   "predicted": "prepare_lesson",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.1,
+   "error": null
+  },
+  {
+   "id": "intent_03",
+   "question": "حضر لي درس إن وأخواتها للصف الثاني الإعدادي",
+   "expected": "prepare_lesson",
+   "ambiguous_expected": false,
+   "predicted": "prepare_lesson",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_04",
+   "question": "جهزلي حصة نحو للعيال عن الفاعل",
+   "expected": "prepare_lesson",
+   "ambiguous_expected": true,
+   "predicted": "general_question",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": false,
+   "latency_ms": 0.4,
+   "error": null
+  },
+  {
+   "id": "intent_05",
+   "question": "عايز أحضر درس الفاعل للخامس",
+   "expected": "prepare_lesson",
+   "ambiguous_expected": true,
+   "predicted": "general_question",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": false,
+   "latency_ms": 0.1,
+   "error": null
+  },
+  {
+   "id": "intent_06",
+   "question": "أعرب الجملة التالية: كتب الطالب الدرس",
+   "expected": "parse",
+   "ambiguous_expected": false,
+   "predicted": "parse",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.4,
+   "error": null
+  },
+  {
+   "id": "intent_07",
+   "question": "ما إعراب: العلم نور؟",
+   "expected": "parse",
+   "ambiguous_expected": false,
+   "predicted": "parse",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_08",
+   "question": "أعرب الجملة ثم حضر درس الفاعل",
+   "expected": "parse",
+   "ambiguous_expected": true,
+   "predicted": "parse",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": true,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_09",
+   "question": "اشرح قاعدة الفاعل للصف الخامس",
+   "expected": "explain",
+   "ambiguous_expected": false,
+   "predicted": "explain",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.1,
+   "error": null
+  },
+  {
+   "id": "intent_10",
+   "question": "ما هو المفعول به وما علامة نصبه؟",
+   "expected": "explain",
+   "ambiguous_expected": false,
+   "predicted": "explain",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_11",
+   "question": "ما الفرق بين التمييز والحال؟",
+   "expected": "compare",
+   "ambiguous_expected": false,
+   "predicted": "compare",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.3,
+   "error": null
+  },
+  {
+   "id": "intent_12",
+   "question": "ما الفرق بين كان وأخواتها وإن وأخواتها؟",
+   "expected": "compare",
+   "ambiguous_expected": false,
+   "predicted": "compare",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_13",
+   "question": "مرحبا",
+   "expected": "chitchat",
+   "ambiguous_expected": false,
+   "predicted": "chitchat",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_14",
+   "question": "السلام عليكم",
+   "expected": "chitchat",
+   "ambiguous_expected": false,
+   "predicted": "chitchat",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_15",
+   "question": "شكرا",
+   "expected": "chitchat",
+   "ambiguous_expected": false,
+   "predicted": "chitchat",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_16",
+   "question": "صحح هذه الجملة: الطالب مجتهد جدا",
+   "expected": "correct",
+   "ambiguous_expected": false,
+   "predicted": "correct",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_17",
+   "question": "راجع هذه الجملة: العلم نور",
+   "expected": "review",
+   "ambiguous_expected": false,
+   "predicted": "review",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_18",
+   "question": "كيف أشرح درس الفاعل للصف الخامس؟",
+   "expected": "pedagogical_advice",
+   "ambiguous_expected": false,
+   "predicted": "pedagogical_advice",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_19",
+   "question": "ما أفضل أسلوب لشرح الفاعل؟",
+   "expected": "pedagogical_advice",
+   "ambiguous_expected": false,
+   "predicted": "pedagogical_advice",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_20",
+   "question": "أنشئ ورقة عمل عن الفاعل للصف الخامس",
+   "expected": "generate_worksheet",
+   "ambiguous_expected": false,
+   "predicted": "generate_worksheet",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_21",
+   "question": "أنشئ تدريبات على المفعول به",
+   "expected": "generate_exercises",
+   "ambiguous_expected": false,
+   "predicted": "generate_exercises",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_22",
+   "question": "أنشئ اختبار سريع عن الحال",
+   "expected": "generate_quiz",
+   "ambiguous_expected": false,
+   "predicted": "generate_quiz",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_23",
+   "question": "أنشئ امتحان نحو للصف الثاني الإعدادي",
+   "expected": "generate_exam",
+   "ambiguous_expected": false,
+   "predicted": "generate_exam",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_24",
+   "question": "أنشئ حزمة مراجعة شاملة لوحدة الجملة الفعلية - الصف الخامس",
+   "expected": "generate_revision",
+   "ambiguous_expected": false,
+   "predicted": "generate_revision",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_25",
+   "question": "الخامس",
+   "expected": "prepare_lesson",
+   "ambiguous_expected": true,
+   "predicted": "prepare_lesson",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.0,
+   "error": null
+  },
+  {
+   "id": "intent_26",
+   "question": "اقترح نشاطا تفاعليا لدرس الحال",
+   "expected": "activity",
+   "ambiguous_expected": false,
+   "predicted": "activity",
+   "confidence": 1.0,
+   "source": "rule",
+   "ambiguous": false,
+   "correct": true,
+   "latency_ms": 0.1,
+   "error": null
+  }
+ ]
+}

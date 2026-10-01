@@ -31,7 +31,7 @@ def select_light_system(analysis=None, question: str = "") -> str:
             return PEDAGOGY_LIGHT_SYSTEM
     except Exception:
         pass
-    if any(k in (question or "") for k in ["كيف أشرح", "كيف اشرح", "لهم الاجابة", "لهم الإجابة"]):
+    if any(k in (question or "") for k in ["كيف أشرح", "كيف اشرح", "كيف أبسط", "كيف ابسط", "أفضل أسلوب", "افضل اسلوب", "أسلوب شرح", "طريقة شرح", "لهم الاجابة", "لهم الإجابة"]):
         return PEDAGOGY_LIGHT_SYSTEM
     return LIGHT_SYSTEM
 

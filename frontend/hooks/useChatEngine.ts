@@ -36,6 +36,8 @@ export interface ChatEngine {
   lastFailed: string | null;
   send: (text: string) => void;
   sendClarification: (opt: string) => void;
+  /** اختيار صف من تلميح رسالة: يمسح التلميحات ويرسل الصف نصًا في نفس الخيط */
+  sendGrade: (grade: string) => void;
 }
 
 // محرك المحادثة الوحيد: SSE أولاً ثم سوكت احتياطياً — تشترك فيه الشاشتان.
@@ -68,13 +70,23 @@ export function useChatEngine({ threadId, seed, onThreadCreated }: EngineOptions
   const liveRef = useRef({ threadId, onThreadCreated });
   liveRef.current = { threadId, onThreadCreated };
 
+  // معرّف الخيط الفعلي: يبدأ من الخاصية ويتحدث عند إنشاء الخيط أثناء البث،
+  // فكل إرسال لاحق يستهدف الخيط الصحيح بدل إنشاء مكرر.
+  const threadIdRef = useRef<number | null>(threadId);
+  if (threadId != null && threadIdRef.current !== threadId) {
+    threadIdRef.current = threadId;
+  }
+
   const { send: sendSocket } = useChatSocket({
     enabled: true,
     onAnswer: (data) => {
       setIsLoading(false);
       setStreamStatus(null);
-      setMessages((prev) => [...prev, { id: `assistant-${Date.now()}`, content: data.answer, role: "assistant", createdAt: new Date(), hits: data.hits || [] }]);
-      if (data.thread_id != null) liveRef.current.onThreadCreated?.(data.thread_id);
+      setMessages((prev) => [...prev, { id: `assistant-${Date.now()}`, content: data.answer, role: "assistant", createdAt: new Date(), hits: data.hits || [], hint: data.clarification_hint ?? null }]);
+      if (data.thread_id != null) {
+        threadIdRef.current = data.thread_id;
+        liveRef.current.onThreadCreated?.(data.thread_id);
+      }
       refreshThreads();
     },
     onError: (msg) => {
@@ -118,7 +130,7 @@ export function useChatEngine({ threadId, seed, onThreadCreated }: EngineOptions
         traceSteps.push({ label });
       };
       setMessages((prev) => [...prev, { id: assistantId, content: "", role: "assistant", createdAt: new Date(), hits: [], trace: [], streaming: true }]);
-      for await (const event of streamChat(text.trim(), liveRef.current.threadId, (msg: string) => setStreamStatus(msg), controller.signal)) {
+      for await (const event of streamChat(text.trim(), threadIdRef.current, (msg: string) => setStreamStatus(msg), controller.signal)) {
         if (event.type === "status") {
           setStreamStatus(event.message ?? null);
           pushStep(event.message ?? "");
@@ -131,6 +143,9 @@ export function useChatEngine({ threadId, seed, onThreadCreated }: EngineOptions
           setIsLoading(false);
           setStreamStatus(null);
           return;
+        } else if (event.type === "clarification_hint") {
+          const hint = { question: event.question ?? "", options: event.options ?? [] };
+          setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, hint } : m)));
         } else if (event.type === "answer_chunk") {
           fullText += event.text ?? "";
           setStreamStatus(null);
@@ -153,7 +168,10 @@ export function useChatEngine({ threadId, seed, onThreadCreated }: EngineOptions
       if (/تعذّر الوصول|ضغط مؤقت|429|حدث خطأ/.test(fullText)) {
         setLastFailed(text.trim());
       }
-      if (finalThreadId != null) liveRef.current.onThreadCreated?.(finalThreadId);
+      if (finalThreadId != null) {
+        threadIdRef.current = finalThreadId;
+        liveRef.current.onThreadCreated?.(finalThreadId);
+      }
       refreshThreads();
       return;
     } catch (e: unknown) {
@@ -166,7 +184,7 @@ export function useChatEngine({ threadId, seed, onThreadCreated }: EngineOptions
       toast.error(msg + " اضغط Retry.");
     }
 
-    if (!sendSocket(liveRef.current.threadId, text.trim())) {
+    if (!sendSocket(threadIdRef.current, text.trim())) {
       setIsLoading(false);
       setStreamStatus(null);
       setLastFailed(text.trim());
@@ -180,5 +198,11 @@ export function useChatEngine({ threadId, seed, onThreadCreated }: EngineOptions
     void handleSendMessage(`أقصد: ${opt} — ${lastUser?.content || ""}`.slice(0, 120));
   };
 
-  return { messages, isLoading, streamStatus, clarify, lastFailed, send: handleSendMessage, sendClarification };
+  const sendGrade = (grade: string) => {
+    setClarify(null);
+    setMessages((prev) => prev.map((m) => (m.hint ? { ...m, hint: null } : m)));
+    void handleSendMessage(grade.trim().slice(0, 120));
+  };
+
+  return { messages, isLoading, streamStatus, clarify, lastFailed, send: handleSendMessage, sendClarification, sendGrade };
 }

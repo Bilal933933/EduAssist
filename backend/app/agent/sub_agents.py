@@ -1,4 +1,5 @@
 """4 وكلاء فرعيين لتحضير الدرس - كل وكيل يبحث ويولد جزءه."""
+from arabic_text import extract_topic, split_subtopics
 from app.agent.tools import execute_tool
 from app.agent.fc_client import call_simple
 from app.agent.clarifier import extract_scope
@@ -10,30 +11,29 @@ SUB_TASKS = {
     "تدريبات": "تدريبات وأمثلة على {topic} مع إجابات وعلامات إعراب",
 }
 
-def _extract_topic_grade(question: str) -> tuple:
+def resolve_topic(question: str) -> str:
+    """موضوع الدرس من نص الطلب — "النحو" عند الغياب."""
+    return extract_topic(question) or "النحو"
+
+
+def resolve_grade(question: str) -> str:
+    """الصف لفظًا كما ورد — الافتراض الإعدادية عند الغياب (سياسة تحضير v1)."""
     import re
-    topic = "النحو"
-    grade = "المرحلة الإعدادية"
-    
-    m = re.search(r'درس\s+([^مع،,-]+)', question)
-    if m:
-        topic = m.group(1).strip(" -،")
-    
     if "إعدادي" in question or "إعدادية" in question:
-        grade = "الثاني الإعدادي"
-    elif "ابتدائي" in question or "ابتدائية" in question:
-        grade = "الخامس الابتدائي"
-    elif "ثانوي" in question or "ثانوية" in question:
-        grade = "الثانوي"
-        
-    m2 = re.search(r'الصف\s+([^\s،,-]+)', question)
-    if m2:
-        grade = m2.group(1)
-    return topic, grade
+        return "الثاني الإعدادي"
+    if "ابتدائي" in question or "ابتدائية" in question:
+        return "الخامس الابتدائي"
+    if "ثانوي" in question or "ثانوية" in question:
+        return "الثانوي"
+    m = re.search(r'الصف\s+([^\s،,-]+)', question)
+    if m:
+        return m.group(1)
+    return "المرحلة الإعدادية"
+
 
 def run_sub_agents(client, kb, question: str) -> dict:
     """يشغل 4 وكلاء بالتوازي المنطقي ويعيد أجزاء الدرس."""
-    topic, grade = _extract_topic_grade(question)
+    topic, grade = resolve_topic(question), resolve_grade(question)
     inherited_scope = extract_scope(question)
     results = {}
 
@@ -62,8 +62,14 @@ def run_sub_agents(client, kb, question: str) -> dict:
 
 def synthesize_lesson(client, parts: dict, topic: str, grade: str) -> str:
     """يجمع 4 أجزاء في خطة نهائية موحدة."""
+    import re
     combined = "\n\n".join(f"### {k}:\n{v['text']}" for k, v in parts.items())
-    prompt = f"اجمع هذه الأجزاء في خطة درس واحدة احترافية لـ {topic} الصف {grade} مع عناوين واضحة:\n{combined}\nلا تكرر، واذكر المصادر."
+    # الموضوع المركب (المبتدأ والخبر): قسم مستقل لكل جزء وإلا ابتلع أحدهما الآخر.
+    cover = ""
+    subtopics = split_subtopics(topic)
+    if len(subtopics) > 1:
+        cover = f" الموضوع مركب ({topic}): خصص قسمًا مستقلًا لكل جزء — {'، '.join(subtopics)} — وغطِّ تعريف كل جزء وأنواعه وأمثلته، ولا تدمجها في قسم واحد."
+    prompt = f"اجمع هذه الأجزاء في خطة درس واحدة احترافية لـ {topic} الصف {grade} مع عناوين واضحة:\n{combined}\nلا تكرر، واذكر المصادر.{cover}"
     try:
         return call_simple(client, prompt, "أنت منسق خطط دروس. اجمع باحترافية.")
     except:

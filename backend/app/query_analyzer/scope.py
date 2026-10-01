@@ -28,9 +28,9 @@ class Scope:
         return getattr(self, field).status == "unknown"
 
     def needs_clarification(self, intent: str) -> tuple[bool, str | None]:
-        # قاعدة: اسأل فقط إذا كان النقص يغير الناتج مادياً
+        # v1: لا حجب — النقص يُعاد كتلميح غير حاجب، والبحث شامل فورًا.
         if intent == "prepare_lesson" and self.is_unknown("grade"):
-            return True, "لأي صف تريد تحضير الدرس؟"
+            return False, "لأي صف تريد تحضير الدرس؟"
         if intent in ("generate_exam", "generate_exercises") and self.is_unknown("grade"):
             # لتدريبات/امتحان بدون صف → لا نوقف، نستخدم مراجع عامة
             return False, None

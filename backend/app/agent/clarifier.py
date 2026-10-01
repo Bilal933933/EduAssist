@@ -1,74 +1,41 @@
 """استخراج نطاق الاستعلام قبل الاسترجاع مع الحفاظ على الاستيضاح القديم."""
 import re
 
+from arabic_text import (
+    GRADE_NUM_WORDS,
+    extract_branch,
+    extract_grade_code,
+    extract_subject,
+    normalize_whitespace,
+)
+
 GRADE_PATTERN = re.compile(r"الصف\s+(الأول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر).*?(ابتدائي|إعدادي|اعدادي|ثانوي)")
 GRADE_KEYWORDS = [
     "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر",
     "ابتدائي", "إعدادي", "اعدادي", "ثانوي"
 ]
 GRADE_FOLDER_PATTERN = re.compile(r"(?:grade|primary[_\-]?|row[_\-]?)(\d+)")
-GRADE_MAP = {
-    "1": "الأول", "2": "الثاني", "3": "الثالث", "4": "الرابع", "5": "الخامس",
-    "6": "السادس", "7": "السابع", "8": "الثامن", "9": "التاسع", "10": "العاشر"
-}
-
-GRADE_PATTERNS = [
-    ("primary_1", [r"الأول\s+الابتدائي", r"اول\s+ابتدائي"]),
-    ("primary_4", [r"الرابع\s+الابتدائي", r"رابع\s+ابتدائي"]),
-    ("primary_5", [r"الخامس\s+الابتدائي", r"خامس\s+ابتدائي"]),
-    ("primary_6", [r"السادس\s+الابتدائي", r"سادس\s+ابتدائي"]),
-    ("prep_1", [r"الأول\s+الإعدادي", r"اول\s+اعدادي", r"أولى?\s+إعدادي"]),
-    ("prep_2", [r"الثاني\s+الإعدادي", r"ثاني\s+اعدادي", r"ثانية?\s+إعدادي"]),
-    ("prep_3", [r"الثالث\s+الإعدادي", r"ثالث\s+اعدادي", r"ثالثة?\s+إعدادي"]),
-    ("secondary_1", [r"الأول\s+الثانوي", r"اول\s+ثانوي"]),
-    ("secondary_2", [r"الثاني\s+الثانوي", r"ثاني\s+ثانوي"]),
-    ("secondary_3", [r"الثالث\s+الثانوي", r"ثالث\s+ثانوي"]),
-]
-
-SUBJECT_ALIASES = {
-    "اللغة العربية": ["اللغة العربية", "اللغة العربيه", "لغة عربية", "العربي", "عربي"],
-    "الرياضيات": ["الرياضيات", "رياضيات", "الرياضه"],
-    "العلوم": ["العلوم", "علوم"],
-    "الدراسات الاجتماعية": ["الدراسات الاجتماعية", "الدراسات الاجتماعيه", "دراسات اجتماعية", "دراسات"],
-    "اللغة الإنجليزية": ["اللغة الإنجليزية", "اللغة الانجليزية", "الانجليزي", "الإنجليزي", "انجليزي", "إنجليزي"],
-}
-
-ARABIC_BRANCHES = {
-    "نحو": ["نحو", "النحو", "قواعد", "إعراب", "الإعراب", "الفاعل", "المبتدأ"],
-    "صرف": ["صرف", "الصرف", "وزن", "الوزن", "الميزان", "اشتقاق", "الاشتقاق", "جذر"],
-    "بلاغة": ["بلاغة", "البلاغة", "تشبيه", "استعارة", "كناية", "محسنات"],
-    "أدب": ["أدب", "الأدب", "أدب عربي"],
-    "قراءة": ["قراءة", "القراءة", "الفهم القرائي"],
-    "نصوص": ["نصوص", "النصوص"],
-    "إملاء": ["إملاء", "الإملاء", "املاء", "همزة", "الهمزة", "التاء المربوطة"],
-    "تعبير": ["تعبير", "التعبير", "موضوع تعبير", "كتابة موضوع"],
-}
 
 
 def _clean(text: str) -> str:
-    return re.sub(r"\s+", " ", text or "").strip()
+    return normalize_whitespace(text)
 
 
 def extract_scope(question: str) -> dict:
+    """تركيب صريح من ذرات المكتبة — قاعدة النطاق (الفرع يقتضي العربية) هنا لا في المكتبة."""
     q = _clean(question)
     scope = {}
-    for grade, patterns in GRADE_PATTERNS:
-        if any(re.search(pattern, q, re.IGNORECASE) for pattern in patterns):
-            scope["grade"] = grade
-            scope["stage"] = grade.split("_")[0]
-            break
-
-    for subject, aliases in SUBJECT_ALIASES.items():
-        if any(alias in q for alias in aliases):
-            scope["subject"] = subject
-            break
-
-    for branch, aliases in ARABIC_BRANCHES.items():
-        if any(alias in q for alias in aliases):
-            scope["branch"] = branch
-            scope.setdefault("subject", "اللغة العربية")
-            break
-
+    grade, stage = extract_grade_code(q)
+    if grade:
+        scope["grade"] = grade
+        scope["stage"] = stage
+    subject = extract_subject(q)
+    branch = extract_branch(q)
+    if branch:
+        scope["branch"] = branch
+        subject = subject or "اللغة العربية"
+    if subject:
+        scope["subject"] = subject
     return scope
 
 
@@ -84,8 +51,8 @@ def _extract_grades_from_hits(hits: list) -> set[str]:
             if kw in src:
                 grades.add(kw)
         for num in GRADE_FOLDER_PATTERN.findall(src):
-            if num in GRADE_MAP:
-                grades.add(f"الصف {GRADE_MAP[num]}")
+            if num in GRADE_NUM_WORDS:
+                grades.add(f"الصف {GRADE_NUM_WORDS[num]}")
     return grades
 
 

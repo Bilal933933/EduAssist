@@ -17,21 +17,8 @@ from app.agent.generator import build_teacher_prompt
 
 
 async def run_agentic_rag_stream(client, kb, question, history=None, max_iterations=4, analysis=None, teacher_id="default", light=False):
-    """نسخة Streaming مع استيضاح."""
+    """نسخة Streaming — v1: بلا حجب استيضاح (تلميح غير حاجب في service.py)."""
     question_scope = extract_scope(question)
-    if analysis is not None and getattr(analysis, "needs_clarification", False):
-        yield {"type": "clarification", "question": analysis.clarification_question, "options": []}
-        return
-    if analysis is None:
-        try:
-            quick_hits = kb.vector_service.lexical_search(question, top_k=5)
-            from app.agent.clarifier import needs_clarification
-            clar = needs_clarification(question, quick_hits)
-            if clar:
-                yield {"type": "clarification", "question": clar["question"], "options": clar["options"]}
-                return
-        except Exception as e:
-            print(f"[Clarify stream skip: {e}]")
     import asyncio
     # مسار خفيف متدفق: بحث واحد + توليد متدفق.
     if light:
@@ -50,7 +37,8 @@ async def run_agentic_rag_stream(client, kb, question, history=None, max_iterati
         full = ""
         try:
             from google.genai import types as gen_types
-            _stream_cfg = gen_types.GenerateContentConfig(system_instruction=system)
+            from app.agent.fc_client import TEMPERATURE, TOP_P, SEED
+            _stream_cfg = gen_types.GenerateContentConfig(system_instruction=system, temperature=TEMPERATURE, top_p=TOP_P, seed=SEED)
             try:
                 _stream_cfg.http_options = gen_types.HttpOptions(timeout=30000)
             except Exception:
@@ -178,7 +166,8 @@ async def run_agentic_rag_stream(client, kb, question, history=None, max_iterati
     full = ""
     try:
         from google.genai import types as gen_types
-        for chunk in client.models.generate_content_stream(model=MODEL_NAME, contents=user, config=gen_types.GenerateContentConfig(system_instruction=system)):
+        from app.agent.fc_client import TEMPERATURE, TOP_P, SEED
+        for chunk in client.models.generate_content_stream(model=MODEL_NAME, contents=user, config=gen_types.GenerateContentConfig(system_instruction=system, temperature=TEMPERATURE, top_p=TOP_P, seed=SEED)):
             if chunk.text:
                 full += chunk.text
                 yield {"type": "answer_chunk", "text": chunk.text}

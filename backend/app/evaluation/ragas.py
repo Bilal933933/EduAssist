@@ -1,6 +1,5 @@
 """تقييم Ragas مبسط: Faithfulness + Relevance عبر Gemini."""
-import re
-import json
+from arabic_text import parse_json_block
 
 EVAL_PROMPT = """قيّم هذه الإجابة:
 
@@ -22,10 +21,9 @@ def evaluate(client, question: str, answer: str, hits: list) -> dict:
     try:
         from app.agent.fc_client import call_simple
         raw = call_simple(client, prompt, "أنت مقيّم. أجب JSON فقط.")
-        m = re.search(r'\{.*\}', raw, re.DOTALL)
-        if not m:
+        data = parse_json_block(raw)
+        if not data:
             return {"faithfulness": 5, "relevance": 5, "reason": "فشل التحليل"}
-        data = json.loads(m.group())
         faith = int(data.get("faithfulness", 5)) / 10
         relev = int(data.get("relevance", 5)) / 10
         print(f"[Ragas] faith={faith:.1f} relev={relev:.1f} - {data.get('reason','')[:60]}")

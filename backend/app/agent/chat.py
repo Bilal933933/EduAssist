@@ -8,6 +8,10 @@ from app.core.config import settings
 MODEL_NAME = settings.GEMINI_MODEL
 FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.1-flash-lite"]
 MAX_RETRIES = 3
+# تثبيت التوليد — نفس قيم fc_client (حرارة صفر + بذرة 42).
+TEMPERATURE = 0.0
+TOP_P = 1.0
+SEED = 42
 
 
 def _is_retryable(error):
@@ -64,7 +68,7 @@ def _try_model(client, model, user, system):
             response = client.models.generate_content(
                 model=model,
                 contents=user,
-                config={"systemInstruction": system},
+                config={"systemInstruction": system, "temperature": TEMPERATURE, "topP": TOP_P, "seed": SEED},
             )
             return response.text
         except Exception as error:
@@ -98,9 +102,11 @@ def ask(client, question, hits, history=None):
 
 
 def embed_question(client, question):
-    """يحول سؤال الطالب إلى متجه عبر سلسلة نماذج التضمين الاحتياطية."""
-    try:
-        from app.knowledge.embeddings import embed_texts
-    except ImportError:
-        from app.knowledge.embeddings import embed_texts
-    return embed_texts(client, [question])[0]
+    """يحول سؤال المدرس إلى متجه — v1: المحلي حصرًا (384) ليطابق المخزّن.
+
+    `client` يُتجاهل عمدًا؛ خلط Gemini ‏(768) مع أعمدة (384) كسر الأبعاد.
+    مسار Gemini الكامل (تخزين + سؤال) مؤجّل لـ v2 مع عمود embedding_model.
+    """
+    from app.knowledge.embeddings import embed_question_local
+
+    return embed_question_local(question)

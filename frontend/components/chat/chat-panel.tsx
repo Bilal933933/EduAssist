@@ -21,7 +21,7 @@ interface ChatPanelProps {
 
 // الهيكل البصري الوحيد لمنطقة المحادثة — يستقبل المحرك جاهزاً بلا منطق جلب.
 export function ChatPanel({ stats, engine, emptyState }: ChatPanelProps) {
-  const { messages, isLoading, streamStatus, clarify, lastFailed, send, sendClarification } = engine;
+  const { messages, isLoading, streamStatus, lastFailed, send, sendGrade } = engine;
   const { desktopSidebar, setDesktopSidebar, openMenu } = useSidebarControls();
   const { mainRef, showJump, handleScroll, jumpToBottom } = useStickBottom(messages);
   const scrollBottomRef = useRef<HTMLDivElement>(null);
@@ -57,7 +57,12 @@ export function ChatPanel({ stats, engine, emptyState }: ChatPanelProps) {
               {messages.map((msg) => (
                 <MessageItem key={msg.id} message={msg} />
               ))}
-              {clarify && <ClarificationChips question={clarify.question} options={clarify.options} onSelect={sendClarification} />}
+              {(() => {
+                const hintMsg = [...messages].reverse().find((m) => m.role === "assistant" && m.hint && !m.streaming);
+                return hintMsg?.hint ? (
+                  <ClarificationChips question={hintMsg.hint.question} options={hintMsg.hint.options} onSelect={sendGrade} />
+                ) : null;
+              })()}
               {isLoading && ![...messages].reverse().find((m) => m.role === "assistant")?.content && <ThinkingIndicator message={streamStatus || undefined} />}
               {lastFailed && !isLoading && (
                 <div className="flex justify-center my-3">

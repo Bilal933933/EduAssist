@@ -2,7 +2,7 @@ import sys
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-_PEDAGOGY_KEYWORDS = ("أسلوب", "كيف أشرح", "كيف اشرح", "طريقة", "نشاط", "تمهيد", "استراتيجية", "مشوقة", "اقترح")
+_PEDAGOGY_KEYWORDS = ("أسلوب", "اسلوب", "كيف أشرح", "كيف اشرح", "كيف أبسط", "كيف ابسط", "كيف أوضح", "كيف اوضح", "كيف أبدأ", "كيف ابدأ", "طريقة", "نشاط", "تمهيد", "استراتيجية", "مشوقة", "اقترح", "أفضل", "افضل", "يخلط", "يخطئ")
 
 
 def _is_pedagogy_query(question: str, analysis=None) -> bool:

@@ -6,9 +6,9 @@ services:
     image: postgres:16-alpine
     container_name: agt_postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: "12345678"
-      POSTGRES_DB: ai_grammar_tutor
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ضع POSTGRES_PASSWORD في .env الجذري}
+      POSTGRES_DB: ${POSTGRES_DB:-ai_grammar_tutor}
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -24,7 +24,7 @@ services:
     container_name: agt_ai_chat
     env_file: ./backend/.env
     environment:
-      VECTOR_DATABASE_URL: postgresql://postgres:12345678@postgres:5432/ai_grammar_tutor
+      VECTOR_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?ضع POSTGRES_PASSWORD في .env الجذري}@postgres:5432/${POSTGRES_DB:-ai_grammar_tutor}
     volumes:
       - ./backend/data:/app/data
       - ./backend/store:/app/store
@@ -42,7 +42,7 @@ services:
     env_file: ./realtime/.env
     environment:
       PORT: "3001"
-      DATABASE_URL: postgresql://postgres:12345678@postgres:5432/ai_grammar_tutor
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?ضع POSTGRES_PASSWORD في .env الجذري}@postgres:5432/${POSTGRES_DB:-ai_grammar_tutor}
       AI_SERVICE_URL: http://ai-chat:8000
     ports:
       - "3001:3001"

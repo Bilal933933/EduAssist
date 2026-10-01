@@ -5,7 +5,7 @@ from app.knowledge.retrieval_log import log_retrieval
 from app.modules.chat.validation import validate_question
 from app.dependencies import get_summary_repo
 from app.agent import call_simple, get_chitchat_reply, route, run_agentic_rag, run_agentic_rag_stream
-from app.query_analyzer.analyzer import analyze
+from app.query_analyzer.analyzer import analyze, is_ambiguous
 from app.modules.tutor_orchestrator.application.route_message_use_case import (
     resolve_module,
 )
@@ -182,14 +182,34 @@ def _build_context(history: list) -> dict:
     }
 
 
-def _resolve(question: str, context: dict):
-    """نقطة التوجيه الوحيدة: analyze ← module ← mode.
+def _resolve(question: str, context: dict, client=None):
+    """نقطة التوجيه الوحيدة: analyze ← (هجين عند الغموض) ← module ← mode.
 
-    تُستدعى من handle() وstream() معاً حتى لا ينحرف المنطق بينهما (DRY).
+    الطبقة 1 قواعد دائماً. الطبقة 2 (نموذج مقيد بالـ18) فقط عند is_ambiguous
+    وثقة >= 0.6 — وإلا تبقى القاعدة. client=None يحافظ على السلوك القديم.
     """
     analysis = analyze(question, context)
+    if client is not None:
+        try:
+            if is_ambiguous(analysis, question):
+                from app.query_analyzer.llm_classifier import classify_intent_llm
+
+                llm_intent, conf = classify_intent_llm(client, question, context)
+                if llm_intent and conf >= 0.6 and llm_intent != analysis.intent:
+                    analysis.intent = llm_intent
+                    from app.query_analyzer.analyzer import _detect_source_policy
+
+                    analysis.source_policy = _detect_source_policy(question, llm_intent)
+                    try:
+                        needs, q = analysis.scope.needs_clarification(llm_intent)
+                        analysis.needs_clarification = needs
+                        analysis.clarification_question = q
+                    except Exception:
+                        pass
+        except Exception as e:
+            get_logger("app").debug(f"Hybrid classifier skip: {e}")
     module = resolve_module(analysis)
-    mode = route(analysis)
+    mode = route(analysis, question)
     return analysis, module, mode
 
 
@@ -254,7 +274,7 @@ class ChatService:
         # المرحلة 1: module محسوب وموثق فقط — كل الوحدات تستخدم
         # السلوك الحالي نفسه (صفر تغيير سلوكي).
         # TODO(المرحلة 2): توجيه GRAMMAR/CONVERSATION لوحداتهما.
-        analysis, module, mode = _resolve(question, context)
+        analysis, module, mode = _resolve(question, context, client)
         _ = module
         # رد قصير داخل خيط قائم (لا/نعم/تمام): جواب على سؤال المساعد السابق
         # — يُجاب من سياق الحوار لا من المصادر.
@@ -284,14 +304,6 @@ class ChatService:
                 question, thread_id, client, store
             )
             return build_grammar_result(answer, thread_id)
-        if thread_id is None and analysis.needs_clarification:
-            return {
-                "clarification": {
-                    "question": analysis.clarification_question,
-                    "options": [],
-                },
-                "thread_id": None,
-            }
         if thread_id is None:
             thread_id = store.create_thread(title=question[:50])["id"]
         history = store.recent_history(thread_id)
@@ -325,7 +337,10 @@ class ChatService:
         store.add_message(thread_id, "user", question)
         store.add_message(thread_id, "assistant", answer, sources=hits)
         _update_teacher_memory(analysis, question, teacher_id=teacher_id)
-        return {"answer": answer, "hits": hits, "trace": trace, "thread_id": thread_id}
+        result = {"answer": answer, "hits": hits, "trace": trace, "thread_id": thread_id}
+        if getattr(analysis, "clarification_question", None):
+            result["clarification_hint"] = {"question": analysis.clarification_question, "options": []}
+        return result
 
     async def stream(
         self, question: str, thread_id: int | None, client, kb, store, teacher_id: str = "default"
@@ -339,7 +354,7 @@ class ChatService:
         history = store.recent_history(thread_id) if thread_id is not None else []
         context = _build_context(history) if thread_id is not None else {}
         # المرحلة 1: انظر التعليق في handle() — نفس السلوك الحالي لكل الوحدات.
-        analysis, module, mode = _resolve(question, context)
+        analysis, module, mode = _resolve(question, context, client)
         _ = module
         # رد قصير داخل خيط قائم (لا/نعم/تمام): جواب على سؤال المساعد السابق
         # — يُجاب من سياق الحوار لا من المصادر.
@@ -394,11 +409,6 @@ class ChatService:
                 }
             # المحفوظة=True: التصحيح حُفظ داخل _run_grammar_correction.
             return grammar_gen(), result["thread_id"], True
-        if is_new and analysis.needs_clarification:
-            async def clarify_gen():
-                import json
-                yield f"data: {json.dumps({'type': 'clarification', 'question': analysis.clarification_question, 'options': []}, ensure_ascii=False)}\n\n"
-            return clarify_gen(), None, False
         if is_new:
             thread_id = store.create_thread(title=question[:50])["id"]
         store.add_message(thread_id, "user", question)
@@ -413,6 +423,8 @@ class ChatService:
 
         async def _logging_gen():
             _hits: list = []
+            if getattr(analysis, "clarification_question", None):
+                yield {"type": "clarification_hint", "question": analysis.clarification_question, "options": []}
             async for event in _base_gen:
                 if isinstance(event, dict) and event.get("type") == "done":
                     _hits = event.get("hits", []) or []

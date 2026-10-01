@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+from arabic_text import extract_topic
 from app.query_analyzer.scope import Scope, ScopeField
 
 INTENTS = ["chitchat","prepare_lesson","explain","compare","parse","generate_worksheet","generate_exercises","generate_quiz","generate_exam","generate_reading","generate_discussion","generate_visual","generate_revision","correct","review","activity","pedagogical_advice","general_question"]
@@ -49,6 +50,7 @@ _ACADEMIC_SIGNALS = (
     "حضر", "درس", "خطة", "تحضير", "تدريب", "تمارين", "اختبار", "امتحان",
     "أعرب", "اعرب", "إعراب", "اعراب", "اشرح", "شرح", "صحح", "راجع", "مراجعة",
     "قارن", "الفرق", "نحو", "صرف", "بلاغة", "إملاء", "املاء", "قراءة", "تعبير", "قواعد",
+    "حصة", "جهز", "حضرلي", "حصة نحو",
 )
 
 # أدوات استفهام (مطابقة توكن كامل لا substring حتى لا تلتقط "معاك").
@@ -116,7 +118,15 @@ def _detect_intent(q: str) -> str:
         return "review"
     if "نشاط" in ql or "تفاعلي" in ql:
         return "activity"
-    if "لا يفهم" in ql or "ماذا أفعل" in ql or "كيف أشرح" in ql or "كيف اشرح" in ql:
+    _TEACH_SIGNALS = (
+        "لا يفهم", "ماذا أفعل", "كيف أشرح", "كيف اشرح",
+        "كيف أبسط", "كيف ابسط", "كيف أوضح", "كيف اوضح",
+        "كيف أبدأ", "كيف ابدأ", "كيف أقدم", "كيف اقدم", "كيف أدرس",
+        "أفضل أسلوب", "افضل اسلوب", "أفضل طريقة", "افضل طريقة",
+        "أسلوب شرح", "طريقة شرح", "طريقة تدريس", "أساليب تدريس", "اساليب تدريس",
+        "يخلط", "يخطئ", "الخطأ الشائع", "الأخطاء الشائعة",
+    )
+    if any(s in ql for s in _TEACH_SIGNALS):
         return "pedagogical_advice"
     if ql.startswith("ما هو") or ql.startswith("ما هي") or "اشرح" in ql:
         return "explain"
@@ -143,21 +153,16 @@ def _extract_scope(q: str, context: dict | None = None) -> Scope:
         scope.grade = ScopeField(value=f"{prefix}_{num}", status="known")
         scope.stage = ScopeField(value=stage, status="known")
         return scope
-    # كشف الصف (يتحمل للصف / الصف)
-    m = re.search(r"(?:للصف|الصف)\s+(الأول|الثاني|الثالث|الرابع|الخامس|السادس).*?(ابتدائي|إعدادي|ثانوي)?", q)
-    if m:
-        grade_word, stage_word = m.group(1), m.group(2)
-        grade_map = {"الأول":"1","الثاني":"2","الثالث":"3","الرابع":"4","الخامس":"5","السادس":"6"}
-        num = grade_map.get(grade_word, "")
-        if not stage_word:
-            # fallback: تحقق من كامل السؤال
-            if "إعدادي" in q: stage_word = "إعدادي"
-            elif "ابتدائي" in q: stage_word = "ابتدائي"
-        stage = "primary" if "ابتدائي" in (stage_word or "") else "prep" if "إعدادي" in (stage_word or "") else "primary"
-        if num:
-            prefix = "primary" if stage=="primary" else "prep"
-            scope.grade = ScopeField(value=f"{prefix}_{num}", status="known")
-            scope.stage = ScopeField(value=stage, status="known")
+    # كشف الصف (يتحمل للصف / الصف) — الكشف من المكتبة، والترميز والحالة هنا.
+    from arabic_text import extract_grade_code
+    code, _stage = extract_grade_code(q)
+    if code:
+        num = code.split("_")[1]
+        # المجمّد: الثانوي يُعامل معاملة primary (لا كشف ثانوي في v1).
+        stage = "primary" if code.startswith("secondary") else code.split("_")[0]
+        prefix = "primary" if stage == "primary" else "prep"
+        scope.grade = ScopeField(value=f"{prefix}_{num}", status="known")
+        scope.stage = ScopeField(value=stage, status="known")
     elif "ابتدائي" in q:
         scope.stage = ScopeField(value="primary", status="inferred")
     elif "إعدادي" in q:
@@ -170,9 +175,7 @@ def _extract_scope(q: str, context: dict | None = None) -> Scope:
             scope.branch = ScopeField(value=branch, status="inferred")
             break
     if not scope.topic:
-        m2 = re.search(r"درس\s+([^\s،,]+(?:\s+[^\s،,]+)?)", q)
-        if m2:
-            scope.topic = m2.group(1).strip(" ،")
+        scope.topic = extract_topic(q)
     # إذا لم يُذكر صف في prepare_lesson يبقى unknown
     return scope
 
@@ -184,6 +187,52 @@ def _detect_source_policy(q: str, intent: str) -> str:
     if intent == "prepare_lesson":
         return "curriculum_first"
     return "mixed"
+
+
+def _has_competing_signals(q: str) -> bool:
+    """إشارتان قويتان معاً (مثال: إعراب + تحضير) — القاعدة الواحدة لا تكفي."""
+    q = q or ""
+    has_parse = any(k in q for k in ["أعرب", "اعرب", "إعراب", "اعراب"])
+    has_prepare = any(k in q for k in ["حضر", "حضّر", "تحضير", "خطة درس", "سير حصة"])
+    has_worksheet = "ورقة عمل" in q
+    has_explain = "اشرح" in q or "شرح" in q
+    return (has_parse and has_prepare) or (has_worksheet and (has_parse or has_explain))
+
+
+def is_ambiguous(analysis, question: str = "") -> bool:
+    """الطبقة 1 تحسم الصريح؛ True فقط عند الغموض الذي يستحق النموذج.
+
+    - نية عامة بلا موضوع/صف.
+    - شرح/عام قصير بلا موضوع.
+    - إشارتان متنافستان في سؤال واحد.
+    """
+    try:
+        intent = getattr(analysis, "intent", None) or "general_question"
+        topics = getattr(analysis, "topics", None) or []
+        scope = getattr(analysis, "scope", None)
+        topic = getattr(scope, "topic", None) if scope is not None else None
+        grade_val = ""
+        try:
+            grade_val = scope.grade.value or "" if scope is not None else ""
+        except Exception:
+            grade_val = ""
+        q = (question or "").strip()
+        if intent == "general_question" and not topics and not topic and not grade_val:
+            return True
+        if intent in ("general_question", "explain") and not topic and len(q) < 30:
+            return True
+        # دردشة غير تحية صريحة (عامية مثل: جهزلي حصة) — القاعدة ظلمتها، النموذج ينقذها.
+        if intent == "chitchat" and len(q) > 8:
+            pure = any(k in q for k in ["مرحبا", "مرحباً", "السلام عليكم", "صباح الخير", "مساء الخير", "شكرا", "شكراً", "من أنت", "من انت"])
+            short_greet = q in ["سلام", "هلا", "هاي", "تمام", "طيب"]
+            if not pure and q not in short_greet and "سلام" not in q[:6]:
+                return True
+        if _has_competing_signals(q):
+            return True
+        return False
+    except Exception:
+        return False
+
 
 def analyze(question: str, context: dict | None = None) -> QueryAnalysis:
     q_stripped = question.strip()

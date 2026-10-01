@@ -109,3 +109,51 @@ def embed_texts(client, texts, batch_size=BATCH_SIZE):
     for batch_vectors in embed_batches(client, texts, batch_size):
         vectors.extend(batch_vectors)
     return vectors
+
+
+# --- v1 freeze: مشفّر الاستعلام المحلي (e5-small ‏384) ---------------------
+# القاعدة المخزنة كلها بهذا النموذج (passage: ‎…). مسار السؤال Gemini ‏(768)
+# مكسور الأبعاد ضده، لذا v1 يستخدم المحلي حصرًا. Gemini يُؤجَّل لـ v2 مع
+# عمود embedding_model.
+import os as _os
+
+LOCAL_EMBEDDING_PATH = _os.getenv(
+    "LOCAL_EMBEDDING_PATH", r"D:\Offline-600GB\07-RAG\models\e5-small"
+)
+LOCAL_EMBEDDING_DIM = int(_os.getenv("LOCAL_EMBEDDING_DIM", "384"))
+QUERY_PREFIX = "query: "
+
+_local_model = None
+_local_tokenizer = None
+
+
+def embed_question_local(question: str) -> list:
+    """يضمّن سؤالًا واحدًا بالنموذج المحلي نفسه المستخدم في البناء."""
+    global _local_model, _local_tokenizer
+    if _local_model is None:
+        import torch
+        from transformers import AutoModel, AutoTokenizer
+
+        _local_tokenizer = AutoTokenizer.from_pretrained(
+            LOCAL_EMBEDDING_PATH, trust_remote_code=False
+        )
+        _local_model = AutoModel.from_pretrained(
+            LOCAL_EMBEDDING_PATH, trust_remote_code=False
+        )
+        _local_model.eval()
+        print(f"[embed] النموذج المحلي للأسئلة: {LOCAL_EMBEDDING_PATH}")
+    import torch.nn.functional as F
+
+    tok = _local_tokenizer(
+        [QUERY_PREFIX + (question or "")],
+        padding=True, truncation=True, max_length=512, return_tensors="pt",
+    )
+    import torch
+
+    with torch.no_grad():
+        out = _local_model(**tok).last_hidden_state
+        mask = tok["attention_mask"].unsqueeze(-1).expand(out.size()).float()
+        vec = F.normalize((out * mask).sum(1) / mask.sum(1).clamp(min=1e-9), p=2, dim=1)[0].tolist()
+    if len(vec) != LOCAL_EMBEDDING_DIM:
+        raise ValueError(f"بُعد الاستعلام {len(vec)} ≠ ‏{LOCAL_EMBEDDING_DIM}")
+    return [float(x) for x in vec]

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChatPanel } from "./chat-panel";
 import { QuickPrompts } from "./quick-prompts";
@@ -11,12 +10,12 @@ import { useStats, useThreadMessages } from "@/lib/queries";
 import type { StatsResponse } from "@/lib/types";
 
 // /assistant — بدء محادثة جديدة فقط: اقتراحات + إدخال، وأول رد يثبّت مسارها.
+// تثبيت المسار بتحديث الرابط فقط (بلا تنقل) — التنقل يفكّ التركيب ويمسح حالة البث.
 export function NewChatView({ initialStats }: { initialStats: StatsResponse | null }) {
-  const router = useRouter();
   const { data: stats } = useStats(initialStats);
   const engine = useChatEngine({
     threadId: null,
-    onThreadCreated: (id) => router.replace(`/assistant/${id}`),
+    onThreadCreated: (id) => window.history.replaceState(null, "", `/assistant/${id}`),
   });
   return (
     <ChatPanel

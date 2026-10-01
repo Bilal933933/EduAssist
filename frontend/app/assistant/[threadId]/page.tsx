@@ -5,7 +5,10 @@ import { StatsResponse } from "@/lib/types";
 
 async function getInitialStats(): Promise<StatsResponse | null> {
   try {
-    const res = await fetch(`${SERVER_API_BASE_URL}/api/stats`, { cache: "no-store" });
+    const res = await fetch(`${SERVER_API_BASE_URL}/api/stats`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
     if (!res.ok) return null;
     const j = await res.json();
     return (j?.ok === true ? j.data : j) as StatsResponse;

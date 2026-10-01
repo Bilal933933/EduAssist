@@ -41,6 +41,8 @@ def compose(analysis, evidence_text: str = "") -> tuple[str, str]:
         output_p = _load("outputs/lesson_plan.md")
     elif intent == "compare":
         output_p = _load("outputs/table.md")
+    elif intent == "pedagogical_advice":
+        output_p = _load("outputs/teach.md")
     else:
         output_p = ""
 
@@ -48,5 +50,8 @@ def compose(analysis, evidence_text: str = "") -> tuple[str, str]:
     scope_ctx = f"الصف: {analysis.scope.grade.value or 'غير محدد'} | المرحلة: {stage} | الفرع: {branch} | السياسة: {analysis.source_policy} | المواضيع: {', '.join(analysis.topics)}"
 
     system = "\n\n".join(filter(None, [core, intent_p, grade_p, branch_p, citations, output_p]))
-    user = f"[سياق] {scope_ctx}\n\n[أدلة]\n{evidence_text}\n\n[تعليمات] التزم بالأدلة فقط."
+    adapt = ""
+    if not analysis.scope.grade.value:
+        adapt = " [تكييف] الصف غير محدد: اكتب إجابة صالحة لكل الصفوف + فقرة تكييف قصيرة لكل مرحلة، واختم بسطر: حدد الصف لأطوعها له."
+    user = f"[سياق] {scope_ctx}\n\n[أدلة]\n{evidence_text}\n\n[تعليمات] التزم بالأدلة فقط.{adapt}"
     return system, user

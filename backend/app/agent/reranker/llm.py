@@ -1,7 +1,5 @@
 """طبقة LLM الأصلية — محفوظة كخيار أخير خلف RERANK_LLM_LAST=1 (تستهلك حصة)."""
-import json
-import re
-
+from arabic_text import parse_json_block
 from app.agent.reranker.shared import small_pool
 
 RERANK_PROMPT = """رتب هذه المقتطفات حسب صلة مباشرة بسؤال المدرس.
@@ -43,10 +41,10 @@ def rerank_llm_prompt(client, question: str, hits: list, top_k: int = 10) -> lis
     try:
         from app.agent.fc_client import call_simple
         raw = call_simple(client, prompt, "أنت مرتب. أجب JSON فقط.")
-        m = re.search(r'\{.*\}', raw, re.DOTALL)
-        if not m:
+        data = parse_json_block(raw)
+        if not data:
             return hits[:top_k]
-        ranking = json.loads(m.group()).get("ranking", list(range(1, len(hits) + 1)))
+        ranking = data.get("ranking", list(range(1, len(hits) + 1)))
         ranked, seen = [], set()
         for idx in ranking:
             if 1 <= idx <= len(hits) and idx not in seen:

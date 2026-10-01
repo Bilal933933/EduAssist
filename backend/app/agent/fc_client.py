@@ -1,3 +1,4 @@
+import os
 import time
 from google import genai
 from google.genai import errors, types
@@ -10,6 +11,18 @@ MODEL_NAME = settings.GEMINI_MODEL
 FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"]
 MAX_RETRIES = 3
 REQUEST_TIMEOUT_MS = 30000
+# تثبيت التوليد: حرارة صفر + بذرة ثابتة — يزيل عشوائية Gemini الافتراضية.
+TEMPERATURE = 0.0
+TOP_P = 1.0
+SEED = 42
+
+
+def _active_models():
+    """يسمح بتثبيت الموديل أثناء التقييم عبر GEMINI_PIN_MODEL (يمنع fallback العشوائي)."""
+    pin = os.getenv("GEMINI_PIN_MODEL", "").strip()
+    if pin:
+        return [pin]
+    return [MODEL_NAME] + [m for m in FALLBACK_MODELS if m != MODEL_NAME]
 
 def _is_retryable(error):
     if isinstance(error, errors.ClientError):
@@ -56,8 +69,11 @@ def call_with_tools(client, contents, system):
         tools=tools,
         tool_config=types.ToolConfig(function_calling_config=types.FunctionCallingConfig(mode="AUTO")),
         http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS),
+        temperature=TEMPERATURE,
+        top_p=TOP_P,
+        seed=SEED,
     )
-    models = [MODEL_NAME] + [m for m in FALLBACK_MODELS if m != MODEL_NAME]
+    models = _active_models()
     last = None
     for i, model in enumerate(models):
         try:
@@ -72,13 +88,13 @@ def call_with_tools(client, contents, system):
     raise last
 
 def call_simple(client, user: str, system: str) -> str:
-    models = [MODEL_NAME] + [m for m in FALLBACK_MODELS if m != MODEL_NAME]
+    models = _active_models()
     for i, model in enumerate(models):
         try:
             last = None
             for attempt in range(MAX_RETRIES):
                 try:
-                    r = client.models.generate_content(model=model, contents=user, config=types.GenerateContentConfig(system_instruction=system, http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS)))
+                    r = client.models.generate_content(model=model, contents=user, config=types.GenerateContentConfig(system_instruction=system, http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS), temperature=TEMPERATURE, top_p=TOP_P, seed=SEED))
                     return r.text
                 except Exception as e:
                     last = e

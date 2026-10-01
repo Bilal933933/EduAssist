@@ -20,18 +20,7 @@ from app.agent.loop.pipeline import (
 
 def run_agentic_rag(client, kb, question, history=None, max_iterations=4, analysis=None, teacher_id="default", light=False):
     """حلقة مع طبقة استيضاح قبل التفكيك. analysis يأتي من QueryAnalyzer (intent/scope/source_policy)."""
-    # 0. استيضاح عبر Analyzer الجديد فقط — بلا بحث معجمي استباقي (كان يسأل عن الصف حتى للتحيات).
-    if analysis is not None and getattr(analysis, "needs_clarification", False):
-        return f"CLARIFY: {analysis.clarification_question}", [], [{"tool": "clarify", "question": analysis.clarification_question, "options": []}]
-    if analysis is None:
-        try:
-            quick_hits = kb.vector_service.lexical_search(question, top_k=5)
-            from app.agent.clarifier import needs_clarification
-            clar = needs_clarification(question, quick_hits)
-            if clar:
-                return f"CLARIFY: {clar['question']}", [], [{"tool": "clarify", "question": clar["question"], "options": clar["options"]}]
-        except Exception as e:
-            print(f"[Clarify skip: {e}]")
+    # v1: لا حجب — الاستيضاح تلميح غير حاجب يُرفق مع الإجابة في service.py.
 
     # مسار خفيف: بحث واحد + توليد واحد (للإعراب والشرح والأسئلة المفردة).
     if light:
