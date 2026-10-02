@@ -1,3 +1,13 @@
+"""[legacy_v2 مجمّد — ممنوع التشغيل] فهرسة Gemini السريعة (50 قطعة).
+v1 يستخدم chunk_and_store.py + embed_local.py (384) حصرًا.
+"""
+import os as _os
+
+if _os.getenv("ALLOW_LEGACY_GEMINI_EMBED", "0") != "1":
+    raise RuntimeError(
+        "LEGACY_GEMINI_EMBED_FROZEN: quick_index.py مجمّد — استخدم "
+        "scripts/chunk_and_store.py ثم scripts/embed_local.py (384)"
+    )
 import sys
 sys.path.insert(0, '.')
 import os

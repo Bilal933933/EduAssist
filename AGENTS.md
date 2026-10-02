@@ -32,13 +32,13 @@ Next.js (PWA)  -->  FastAPI (RAG Worker)  -->  Postgres + pgvector
 | Gateway | NestJS + Socket.IO (realtime/) |
 | قاعدة بيانات | PostgreSQL 16 + pgvector |
 | LLM | `gemini-3.5-flash-lite` (سريع، حدود مجانية واسعة) مع fallback `3.5-flash -> 3.6-flash` |
-| Embeddings | `gemini-embedding-2` (768 بُعد) مع fallback `gemini-embedding-001` (مجاني) |
+| Embeddings | `e5-small` محلي (384 بُعد، `query:` للسؤال / `passage:` للتخزين) — مسار `gemini-embedding-2` (768) مجمّد legacy_v2 |
 | Vector Search | Hybrid (دلالي + معجمي) + RRF Fuse (بديل Reranker) - لا Cohere |
 
 ## 4. حقائق حرجة (يُمنع كسرها)
 
-- **Embedding Consistency:** `embed_question` يجب أن يستخدم نفس النموذج والأبعاد المخزنة. خلط `embedding-001` و `embedding-2` يكسر البحث (similarity < 0.7)
-- **BATCH_SIZE = 1:** `gemini-embedding-2` يعيد متجه واحد فقط حتى لو أرسلت عدة نصوص. ممنوع batching
+- **Embedding Consistency:** `embed_question` يستخدم `embed_question_local` (e5-small 384 + `query:`) حصرًا ليطابق المخزّن (`passage:`). مسار Gemini (768) مجمّد legacy_v2 — خلطه يكسر البحث (similarity < 0.7)
+- **BATCH_SIZE = 1 (legacy_v2 مجمّد):** كان `gemini-embedding-2` يعيد متجهًا واحدًا فقط؛ المسار كله مجمّد الآن بـ `_legacy_guard()`
 - **Rate Limit 429:** احترم `retryDelay` من Google. `chat.py` يبدل النموذج، `embedder.py` يبدل نموذج التضمين
 - **Resume Indexing:** `indexer.py` يحفظ التقدم في `store/` - عند انقطاعه أعد تشغيله وسيكمل من حيث توقف
 - **Encoding:** كل سكربت بايثون يجب أن يحتوي `sys.stdout.reconfigure(encoding='utf-8')`
@@ -80,7 +80,7 @@ content/
 ## 7. نموذج البيانات
 
 ```
-User(id) - Thread(id, userId, title) - Message(id, threadId, role, content, sources) - SourceChunk(id, path, content, embedding vector(768))
+User(id) - Thread(id, userId, title) - Message(id, threadId, role, content, sources) - SourceChunk(id, path, content, embedding vector(384))
  grades(id, code, label_ar, stage) - teachers(id UUID, external_key, display_name) - teacher_grade_assignments - teacher_preferences - teacher_topic_stats - teacher_mistakes_v2 - teacher_lesson_events
 ```
 - الذاكرة M1/M2 مطبقة في `backend/app/storage/teacher_memory.py:142-235` (سبعة جداول + `external_key='default'` + ترحيل v3 + فهارس للبرومبت)

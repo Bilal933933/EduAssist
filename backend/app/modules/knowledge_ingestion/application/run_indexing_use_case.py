@@ -5,17 +5,18 @@
 """
 
 from app.modules.knowledge_ingestion.application.indexer_service import IndexerService
-from app.knowledge.embeddings import BATCH_SIZE, embed_batches
+from app.knowledge.embeddings import LOCAL_BATCH_SIZE, embed_passages_local
 
 
 def run_indexing(indexer: IndexerService, client, prune: bool = False,
                  embed_fn=None, on_progress=None) -> dict:
     """يفهرس القطع الجديدة تفاضلياً. يعيد {indexed, total, deleted, message}.
 
+    v1: التضمين الافتراضي محلي (e5-small 384 passage:) — مسار Gemini مجمّد legacy_v2.
     prune=False افتراضياً (زر الواجهة: إضافة/تحديث فقط) — الحذف opt-in
     للـ CLI الواعي فقط، حتى لا يحذف الزر بصمت محتوى حياً.
     """
-    embed = embed_fn or embed_batches
+    embed = embed_fn or embed_passages_local
     sections = indexer.load_sections()
     chunks = indexer.chunk(sections)
     indexer.sync_metadata(chunks)
@@ -27,7 +28,7 @@ def run_indexing(indexer: IndexerService, client, prune: bool = False,
             new_chunks.append(chunk)
             new_texts.append(indexer.embedding_text(chunk))
     added = 0
-    for batch_vectors in (embed(client, new_texts, BATCH_SIZE) if new_chunks else []):
+    for batch_vectors in (embed(client, new_texts, LOCAL_BATCH_SIZE) if new_chunks else []):
         for chunk, vector in zip(new_chunks[:len(batch_vectors)], batch_vectors):
             indexer.upsert(chunk, vector)
         added += len(batch_vectors)

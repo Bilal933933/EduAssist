@@ -1,3 +1,11 @@
+"""تضمين الأسئلة — v1: المحلي e5-small (384) هو المصدر الوحيد للحقيقة.
+
+مسار Gemini أدناه مجمّد كـ legacy_v2: لا يُستدعى من أي كود إنتاجي.
+أُبقيت الدوال (embed_batch/embed_batches/embed_texts) للتوافق الاستيرادي فقط،
+وأي استدعاء لها يرفع DeprecationWarning ما لم تُفعّل ALLOW_LEGACY_GEMINI_EMBED=1.
+إعادة تفعيل Gemini تتطلب عمود embedding_model (v2) — ممنوع الخلط مع أعمدة 384.
+"""
+
 import time
 
 import httpx
@@ -5,10 +13,11 @@ from google.genai import errors
 
 from app.core.config import settings
 
-MODEL_NAME = settings.EMBEDDING_MODEL
-FALLBACK_EMBEDDING_MODELS = ["gemini-embedding-2-preview", "gemini-embedding-001"]
-DIMENSIONS = settings.EMBEDDING_DIMENSIONS
-BATCH_SIZE = 1
+# --- legacy_v2 (مجمّد): ثوابت Gemini للتوافق الاستيرادي فقط — لا تستخدم ---
+LEGACY_MODEL_NAME = MODEL_NAME = settings.EMBEDDING_MODEL
+LEGACY_FALLBACK_EMBEDDING_MODELS = FALLBACK_EMBEDDING_MODELS = ["gemini-embedding-2-preview", "gemini-embedding-001"]
+LEGACY_DIMENSIONS = DIMENSIONS = settings.EMBEDDING_DIMENSIONS
+LEGACY_BATCH_SIZE = BATCH_SIZE = 1
 BATCH_DELAY = 2.0
 MAX_RETRIES = 5
 
@@ -54,8 +63,26 @@ def _retry_delay(error):
     return None
 
 
-def embed_batch(client, texts, model=MODEL_NAME):
-    """يضمّن دفعة واحدة؛ على استنفاد يومي يرفع فوراً ليتولى embed_batches التبديل."""
+def _legacy_guard():
+    """حارس التجميد: يرفع ما لم يُسمح صراحة عبر ENV (لأدوات الترحيل v2 فقط)."""
+    import os as _os_guard
+    import warnings as _warnings
+
+    if _os_guard.getenv("ALLOW_LEGACY_GEMINI_EMBED", "0") != "1":
+        _warnings.warn(
+            "مسار Gemini للتضمين مجمّد (legacy_v2) — v1 يستخدم embed_question_local (384) حصرًا",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        raise RuntimeError(
+            "LEGACY_GEMINI_EMBED_FROZEN: استخدم embed_question_local (384). "
+            "لتفعيل الاستثناء عيّن ALLOW_LEGACY_GEMINI_EMBED=1"
+        )
+
+
+def embed_batch(client, texts, model=LEGACY_MODEL_NAME):
+    """[legacy_v2 مجمّد] يُرفع دائمًا ما لم يُفعّل الاستثناء — لا يُستدعى إنتاجيًا."""
+    _legacy_guard()
     last_error = None
     for attempt in range(MAX_RETRIES):
         try:
@@ -82,9 +109,10 @@ def embed_batch(client, texts, model=MODEL_NAME):
     raise last_error
 
 
-def embed_batches(client, texts, batch_size=BATCH_SIZE):
-    """مولّد: يعيد متجهات كل دفعة تباعاً، مع تحول لنموذج احتياطي عند استنفاد الحصة."""
-    models = [MODEL_NAME] + [m for m in FALLBACK_EMBEDDING_MODELS if m != MODEL_NAME]
+def embed_batches(client, texts, batch_size=LEGACY_BATCH_SIZE):
+    """[legacy_v2 مجمّد] مولّد سابق — يرفع فورًا ما لم يُفعّل الاستثناء."""
+    _legacy_guard()
+    models = [LEGACY_MODEL_NAME] + [m for m in LEGACY_FALLBACK_EMBEDDING_MODELS if m != LEGACY_MODEL_NAME]
     model_index = 0
     i = 0
     while i < len(texts):
@@ -103,8 +131,9 @@ def embed_batches(client, texts, batch_size=BATCH_SIZE):
             raise
 
 
-def embed_texts(client, texts, batch_size=BATCH_SIZE):
-    """يحول النصوص إلى متجهات كاملة (مريحة للاستخدام المفرد)."""
+def embed_texts(client, texts, batch_size=LEGACY_BATCH_SIZE):
+    """[legacy_v2 مجمّد] يرفع فورًا — استخدم embed_question_local."""
+    _legacy_guard()
     vectors = []
     for batch_vectors in embed_batches(client, texts, batch_size):
         vectors.extend(batch_vectors)
@@ -122,13 +151,16 @@ LOCAL_EMBEDDING_PATH = _os.getenv(
 )
 LOCAL_EMBEDDING_DIM = int(_os.getenv("LOCAL_EMBEDDING_DIM", "384"))
 QUERY_PREFIX = "query: "
+PASSAGE_PREFIX = "passage: "  # بروتوكول e5 للتخزين — يطابق scripts/embed_local.py
+
+LOCAL_BATCH_SIZE = int(_os.getenv("LOCAL_BATCH_SIZE", "8"))
 
 _local_model = None
 _local_tokenizer = None
 
 
-def embed_question_local(question: str) -> list:
-    """يضمّن سؤالًا واحدًا بالنموذج المحلي نفسه المستخدم في البناء."""
+def _ensure_local_model():
+    """تحميل كسول مشترك (سؤال + تخزين) — يُطبع مرة واحدة."""
     global _local_model, _local_tokenizer
     if _local_model is None:
         import torch
@@ -141,19 +173,42 @@ def embed_question_local(question: str) -> list:
             LOCAL_EMBEDDING_PATH, trust_remote_code=False
         )
         _local_model.eval()
-        print(f"[embed] النموذج المحلي للأسئلة: {LOCAL_EMBEDDING_PATH}")
-    import torch.nn.functional as F
+        print(f"[embed] النموذج المحلي: {LOCAL_EMBEDDING_PATH}")
+    return _local_model, _local_tokenizer
 
-    tok = _local_tokenizer(
-        [QUERY_PREFIX + (question or "")],
-        padding=True, truncation=True, max_length=512, return_tensors="pt",
-    )
+
+def _mean_pool(texts: list[str]) -> list[list[float]]:
+    """تضميد محلي مشترك (mean-pool + L2-norm) مع تحقق البعد 384."""
     import torch
 
+    model, tokenizer = _ensure_local_model()
+    import torch.nn.functional as F
+
+    tok = tokenizer(
+        texts, padding=True, truncation=True, max_length=512, return_tensors="pt",
+    )
     with torch.no_grad():
-        out = _local_model(**tok).last_hidden_state
+        out = model(**tok).last_hidden_state
         mask = tok["attention_mask"].unsqueeze(-1).expand(out.size()).float()
-        vec = F.normalize((out * mask).sum(1) / mask.sum(1).clamp(min=1e-9), p=2, dim=1)[0].tolist()
-    if len(vec) != LOCAL_EMBEDDING_DIM:
-        raise ValueError(f"بُعد الاستعلام {len(vec)} ≠ ‏{LOCAL_EMBEDDING_DIM}")
-    return [float(x) for x in vec]
+        vecs = F.normalize((out * mask).sum(1) / mask.sum(1).clamp(min=1e-9), p=2, dim=1).tolist()
+    for v in vecs:
+        if len(v) != LOCAL_EMBEDDING_DIM:
+            raise ValueError(f"بُعد المتجه {len(v)} ≠ ‏{LOCAL_EMBEDDING_DIM}")
+    return [[float(x) for x in v] for v in vecs]
+
+
+def embed_question_local(question: str) -> list:
+    """يضمّن سؤالًا واحدًا بالنموذج المحلي نفسه المستخدم في البناء."""
+    return _mean_pool([QUERY_PREFIX + (question or "")])[0]
+
+
+def embed_passages_local(client, texts: list[str], batch_size: int = LOCAL_BATCH_SIZE):
+    """[v1 الفعلي] مولّد تضمين محلي (passage:) بنفس توقيع embed_batches المجمّد.
+
+    `client` يُتجاهل عمدًا للتوافق مع منادي run_indexing. يُنتج دفعات 384.
+    """
+    texts = list(texts or [])
+    step = max(1, int(batch_size or LOCAL_BATCH_SIZE))
+    for i in range(0, len(texts), step):
+        batch = [(PASSAGE_PREFIX + (t or "")) for t in texts[i:i + step]]
+        yield _mean_pool(batch)
